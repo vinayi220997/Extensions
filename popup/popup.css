@@ -220,7 +220,7 @@ body.mini #btnSavePage, body.mini #btnHelp { display: none; }
 .ring .track { fill: none; stroke: var(--surface-3); stroke-width: 3.5; }
 .ring .bar { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .35s; }
 .ring.paused .bar { stroke: var(--warn); stroke-linecap: square; }
-.ring .glyph { fill: #fff; stroke: rgba(0, 0, 0, .35); stroke-width: .6; }
+.ring .glyph { fill: var(--warn); }
 .mini-frame.indeterminate .ring .bar { stroke-dasharray: 25 75; stroke-dashoffset: 0; animation: spin 1s linear infinite; transform-origin: 24px 24px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .mini-badge {

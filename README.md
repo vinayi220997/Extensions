@@ -1,4 +1,4 @@
-# VidSnag 2.0 – Video Downloader (Chrome, Manifest V3)
+# VidSnag 2.1 – Video Downloader (Chrome, Manifest V3)
 
 VidSnag finds the videos and audio on the page you're watching and saves them in the quality and format you choose. It's a from-scratch rebuild of the core ideas behind Video DownloadHelper, written in plain JavaScript with no build step.
 
@@ -13,7 +13,19 @@ VidSnag finds the videos and audio on the page you're watching and saves them in
 
 Requires Chrome 120 or newer. The same folder also loads in Edge and Brave.
 
-## What's new in 2.0
+## What's new in 2.1
+
+| Area | Features |
+|---|---|
+| **Sort by** | A new control next to the search box. Sort by date added (newest or oldest), name (A–Z or Z–A), duration (shortest or longest), file size (smallest or largest), quality (highest or lowest), website, or download status. Sorting combines with filters and search, and your choice is remembered. |
+| **Media info** | Every card shows the duration. When the page doesn't say, VidSnag measures it, and `–:––` means it is still unknown. Every card also shows the file size: exact for files (asked from the server if needed) and estimated (`~`) for streams. Resolution, codecs (H.264/HEVC/VP9/AV1, AAC/Opus) and download status (percentage, Paused, Downloaded, Failed) are shown too. |
+| **Global default action** | “Always download audio — all websites” and “Always copy link — all websites” set the main button everywhere. The same choice is in Settings › Behaviour › Default action, and choosing it again switches it off. The “— only on this site” options remain as per-site overrides. Where audio-only isn't possible (WebM, blob), the button falls back to Download. The Alt+Shift+D shortcut follows the default too. |
+| **Pause / Resume** | Pause and resume browser-managed downloads and stream downloads (HLS/DASH). The buttons are in the Downloads tab, a card's ⋯ menu and the Mini view. Live recordings use *Stop & save*. |
+| **Sidebar: Max / Mini / Unpin** | Controls at the top of the sidebar or window, and VidSnag remembers your last mode. **Max** shows the full interface. **Mini** is compact: a round thumbnail with a **circular progress ring** that turns into a **square pause indicator** when paused, a ✓ when finished, plus duration, size, quality and one download/pause button. **Unpin** closes the sidebar and leaves a small VidSnag tab, with the media count, at the right edge of every page. Hover it to open the Mini panel, move away to collapse it, drag it up or down, and press **Pin** to bring the sidebar back in your last mode. It hides in fullscreen. |
+
+**About Unpin:** Chrome doesn't let extensions float, shrink or move the real sidebar. So Unpin uses the closest practical option: an indicator inside the page. It is hidden in fullscreen, only half-visible until you hover it, and can be dragged out of the way. The floating panel only opens from VidSnag's own indicator, and websites cannot embed the VidSnag interface themselves.
+
+## What was new in 2.0
 
 | Area | Features |
 |---|---|
@@ -77,6 +89,7 @@ manifest.json            MV3 manifest (permissions, side panel, content scripts,
 background.js            service worker: detection, probing, queue, library, menus, panels, addons
 content.js               detectors (HTML5/shadow DOM, links, metadata/JSON-LD, blob, addon rules, notices)
 content-main.js          player probe in the page's own JS world (JW Player, Video.js, …)
+content-float.js         Unpinned mode: edge indicator + hover panel (top frame, closed shadow DOM)
 offscreen/               stream downloader: HLS/DASH, AES-128, TS→MP4, audio-only, A/V merge, MP4 audio
 popup/                   panel app (popup / sidebar / window / PiP / tab):
   app.js ctx.js            shell, modes, tab tracking, pin, settings opening
@@ -100,9 +113,11 @@ node server.js &              # http://localhost:8765
 npm i playwright && npx playwright install chromium
 node test.mjs                 # 41 checks — the original 1.0 behaviour
 node test2.mjs                # 81 checks — every 2.0 feature
+node test3.mjs                # 49 checks — sorting, defaults, pause/resume, Max/Mini/Unpin, frame lock
+node pin-click.mjs            # real-mouse check of the floating indicator's Pin button
 ```
 
-Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41** and **81/81**.
+Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41**, **81/81**, **49/49** and the pin-click check.
 
 The 2.0 suite covers:
 - detection
@@ -125,6 +140,8 @@ The 2.0 suite covers:
 - Live DASH and multi-period DASH (for example with ad breaks) are rejected with a message. Some sites stitch ads into HLS, which can leave wrong timestamps after MP4 conversion; use *HLS output › Original (.ts)* for those.
 - Streams are assembled in memory, and merging needs roughly three times the file size in free RAM. Very long 4K downloads may need the "video only" format.
 - **Refresh link** works when the page loads its video without a click. Otherwise, open the page, play the video and save it again.
-- **Pin on top** needs Chrome's Document Picture-in-Picture, so the popup opens a window first.
+- **Keep on top** (Picture-in-Picture) needs Chrome's Document Picture-in-Picture, so the popup opens a window first.
+- **Unpin** can't move or resize Chrome's real sidebar. It closes the sidebar and shows an in-page indicator instead. The indicator doesn't appear on Chrome's own pages (new tab, settings, Web Store), where extensions can't run.
+- **Stream sizes** are estimates (`~`) when the stream gives a bitrate. Plain media playlists without a bitrate show no size until downloaded.
 
 Only download content you have the right to save.
