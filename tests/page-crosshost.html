@@ -1,0 +1,10 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Cross host test</title></head><body><h1>Cross host test</h1>
+<video id="v" controls width="640" poster="/media/poster.jpg"></video>
+<script>
+// Simulates an MSE player (hls.js/dash.js style): fetches manifests + segments with XHR/fetch.
+(async () => {
+  const urls = ['/media/xhost.m3u8'];
+  for (const u of urls) { const r = await fetch(u); await r.arrayBuffer(); }
+  document.getElementById('v').src = URL.createObjectURL(new MediaSource());
+})();
+</script></body></html>

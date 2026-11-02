@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>VidSnag</title>
+  <link rel="stylesheet" href="../ui/theme.css">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/icon32.png" alt="" width="22" height="22">
+      <span>VidSnag</span>
+    </div>
+    <button class="icon-btn" id="openOptions" title="Settings" aria-label="Settings"></button>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-view="media" class="active">Media <span class="count" id="mediaCount"></span></button>
+    <button role="tab" data-view="jobs">Downloads <span class="count" id="jobsCount"></span></button>
+    <button role="tab" data-view="history">History</button>
+  </nav>
+
+  <main>
+    <section id="view-media" class="view active">
+      <div id="mediaList" class="list"></div>
+      <div id="mediaEmpty" class="empty" hidden>
+        <div class="empty-art" aria-hidden="true"></div>
+        <h2>No media detected yet</h2>
+        <p>Start playing the video on this page — VidSnag picks up streams as soon as the player loads them.</p>
+        <button class="btn" id="rescan">Scan page again</button>
+      </div>
+      <div id="mediaUnsupported" class="empty" hidden>
+        <h2>Nothing to scan here</h2>
+        <p>VidSnag works on regular web pages (http/https).</p>
+      </div>
+    </section>
+
+    <section id="view-jobs" class="view">
+      <div id="jobsList" class="list"></div>
+      <div id="jobsEmpty" class="empty" hidden>
+        <h2>No downloads yet</h2>
+        <p>Downloads you start from the Media tab show their progress here.</p>
+      </div>
+    </section>
+
+    <section id="view-history" class="view">
+      <div class="toolbar">
+        <input type="search" id="historySearch" placeholder="Search history" aria-label="Search history">
+      </div>
+      <div id="historyList" class="list"></div>
+      <div id="historyEmpty" class="empty" hidden>
+        <h2>History is empty</h2>
+        <p id="historyEmptyText">Finished downloads are listed here.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="bottom">
+    <span id="footerInfo" class="muted ellipsis"></span>
+    <button class="link-btn" id="footerAction"></button>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

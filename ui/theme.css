@@ -1,0 +1,79 @@
+:root {
+  --bg: #f7f8f7;
+  --surface: #ffffff;
+  --surface-2: #f0f2f1;
+  --border: #e1e5e3;
+  --text: #17201d;
+  --muted: #64716c;
+  --accent: #0f766e;
+  --accent-hover: #0d645d;
+  --accent-soft: #e2f2ef;
+  --accent-text: #ffffff;
+  --danger: #c2410c;
+  --danger-soft: #fdeee6;
+  --warn: #a16207;
+  --warn-soft: #fdf6e3;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 22, .06), 0 2px 8px rgba(16, 24, 22, .04);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111614;
+    --surface: #181f1c;
+    --surface-2: #202825;
+    --border: #2b3531;
+    --text: #e7ecea;
+    --muted: #93a19b;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-soft: #123630;
+    --accent-text: #06201c;
+    --danger: #fb923c;
+    --danger-soft: #3a2015;
+    --warn: #facc15;
+    --warn-soft: #33290d;
+    --shadow: none;
+    color-scheme: dark;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font: 13px/1.4 var(--font);
+  color: var(--text);
+  background: var(--bg);
+}
+button, input, select { font: inherit; color: inherit; }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  height: 30px; padding: 0 12px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.btn:hover { background: var(--surface-2); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
+.btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn.danger { color: var(--danger); }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn:focus-visible, .icon-btn:focus-visible, select:focus-visible, input:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 1px;
+}
+.icon-btn {
+  width: 30px; height: 30px; display: inline-grid; place-items: center;
+  border: 0; border-radius: 8px; background: transparent; cursor: pointer; color: var(--muted);
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn svg, .btn svg { width: 16px; height: 16px; }
+.muted { color: var(--muted); }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+select, input[type="text"], input[type="number"], input[type="search"] {
+  height: 30px; padding: 0 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface);
+}
