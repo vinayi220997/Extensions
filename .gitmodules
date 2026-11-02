@@ -1,0 +1,3 @@
+[submodule "video-downloader-extension"]
+	path = video-downloader-extension
+	url = https://github.com/vinayi220997/video-downloader-extension
