@@ -174,6 +174,21 @@ await step('formats', async () => {
   await page.close();
 });
 
+// ---------- 7b. Site security policy blocks are never attributed to VidPull ----------
+await step('csp', async () => {
+  const page = await ctx.newPage();
+  const msgs = [];
+  page.on('console', (m) => { if (/Content Security Policy|Refused to connect/i.test(m.text())) msgs.push({ text: m.text().slice(0, 120), url: m.location()?.url || '' }); });
+  await page.goto(`${BASE}/page-csp.html`);
+  await page.waitForTimeout(2500);
+  const tabId = await tabIdFor(`${BASE}/page-csp.html`);
+  check('The site\'s blocked requests are reported (fetch + XHR)', msgs.length >= 2, JSON.stringify(msgs));
+  check('None of them point at VidPull\'s code', msgs.every((m) => !m.url.startsWith('chrome-extension://')), JSON.stringify(msgs.map((m) => m.url)));
+  const urls = (await items(tabId)).map((i) => i.url);
+  check('JSON detection still works on that page (via res.json())', urls.some((u) => u.includes('big.mp4?from=feed')), urls.join(' '));
+  await page.close();
+});
+
 // ---------- 8. Provider notice ----------
 await step('provider', async () => {
   const msg = await sw.evaluate(async () => { const m = await import('./lib/drm.js').catch(() => null); return m; }).catch(() => null);

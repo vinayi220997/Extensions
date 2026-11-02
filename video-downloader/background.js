@@ -114,6 +114,40 @@ chrome.webRequest.onSendHeaders.addListener((d) => {
   }
 }, { urls: ['http://*/*', 'https://*/*'], types: ['media', 'xmlhttprequest', 'other', 'object'] }, ['requestHeaders', 'extraHeaders']);
 
+// Licence servers: a POST whose body is the size of the CDM's licence message (reported by
+// content-eme.js). Seen here on the network, so the page's own fetch()/XHR is never wrapped.
+const recentPosts = new Map(); // tabId → [{ url, len, at }]
+chrome.webRequest.onBeforeRequest.addListener((d) => {
+  if (d.tabId < 0 || d.method !== 'POST') return;
+  const raw = d.requestBody?.raw;
+  if (!raw?.length) return;
+  const len = raw.reduce((n, r) => n + (r.bytes?.byteLength || 0), 0);
+  if (!len || len > 65536) return;
+  let url;
+  try { const u = new URL(d.url); url = u.origin + u.pathname; } catch { return; }
+  const list = [...(recentPosts.get(d.tabId) || []), { url, len, at: Date.now() }].filter((x) => Date.now() - x.at < 60000).slice(-20);
+  recentPosts.set(d.tabId, list);
+  if (recentPosts.size > 200) recentPosts.delete(recentPosts.keys().next().value);
+  readTab(d.tabId).then((st) => { if (Object.values(st.eme || {}).some((e) => e.active)) matchLicenses(d.tabId); });
+}, { urls: ['http://*/*', 'https://*/*'], types: ['xmlhttprequest', 'other'] }, ['requestBody']);
+
+async function matchLicenses(tabId) {
+  const posts = recentPosts.get(tabId) || [];
+  if (!posts.length) return;
+  await mutateTab(tabId, (st) => {
+    let changed = false;
+    for (const e of Object.values(st.eme || {})) {
+      for (const m of e.messages || []) {
+        const hit = posts.find((p) => p.at >= m.at - 1000 && p.at - m.at < 15000 && Math.abs(p.len - m.len) <= 4096);
+        if (hit && !e.licenseUrls.includes(hit.url)) { e.licenseUrls = [...e.licenseUrls, hit.url].slice(-4); changed = true; }
+      }
+    }
+    if (!changed) return;
+    const all = mergeDrm(...Object.values(st.eme).filter((x) => x.active));
+    for (const it of Object.values(st.items)) if (it.drm) it.drmInfo = { ...(it.drmInfo || {}), licenseUrls: [...new Set([...(it.drmInfo?.licenseUrls || []), ...all.licenseUrls])].slice(0, 4) };
+  });
+}
+
 chrome.webRequest.onResponseStarted.addListener((d) => {
   const referer = refererByRequest.get(d.requestId);
   refererByRequest.delete(d.requestId);
@@ -288,7 +322,8 @@ function emeToDrm(info) {
     schemes: strs(info.schemes),
     robustness: strs(info.robustness),
     sessionTypes: strs(info.sessionTypes),
-    licenseUrls: strs(info.licenseUrls, 4).filter((u) => /^https?:/i.test(u)),
+    licenseUrls: [],
+    messages: (Array.isArray(info.licenseMessages) ? info.licenseMessages : []).slice(-6).map((m) => ({ len: +m.len || 0, at: +m.at || 0 })).filter((m) => m.len > 0),
     kids: strs(info.kids, 6).filter((k) => /^[0-9a-f]{32}$/.test(k)),
     protocols: ['MSE / EME'],
     sources: ['eme'],
@@ -301,6 +336,7 @@ function emeToDrm(info) {
 }
 function applyEme(st, frameId, info, tab, frameUrl) {
   const eme = emeToDrm(info);
+  eme.licenseUrls = st.eme?.[frameId]?.licenseUrls || []; // found on the network, kept across reports
   st.eme = { ...(st.eme || {}), [frameId]: eme };
   if (!eme.active) return; // capability checks alone (common on many sites) are not protected playback
   const all = mergeDrm(...Object.values(st.eme).filter((e) => e.active));
@@ -1766,7 +1802,7 @@ async function handleMessage(msg, sender) {
       if (tabId == null || tabId < 0 || !msg.info) return null;
       await mutateTab(tabId, (st) => applyEme(st, sender.frameId ?? 0, msg.info, sender.tab, msg.pageUrl));
       updateBadge(tabId);
-      if (msg.info.active) checkEncryptedFiles(tabId);
+      if (msg.info.active) { checkEncryptedFiles(tabId); matchLicenses(tabId); }
       return null;
     }
     case 'float-hello':

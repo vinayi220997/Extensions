@@ -104,8 +104,6 @@
   }
 
   // 2) Real protected playback: sessions + license requests.
-  let lastMessageLen = 0;
-  let lastMessageAt = 0;
   const KS = window.MediaKeySession && MediaKeySession.prototype;
   if (KS && KS.generateRequest) {
     const orig = KS.generateRequest;
@@ -126,7 +124,14 @@
       push(state.sessionTypes, type || 'temporary');
       const session = orig.apply(this, arguments);
       // Registered before the player's own listener, so the size is known when it sends the request.
-      try { session.addEventListener('message', (e) => { lastMessageLen = e.message?.byteLength || 0; lastMessageAt = Date.now(); }); } catch { /* ignore */ }
+      try {
+        session.addEventListener('message', (e) => {
+          const len = e.message?.byteLength || 0;
+          if (!len) return;
+          state.licenseMessages = [...(state.licenseMessages || []), { len, at: Date.now() }].slice(-6);
+          emit();
+        });
+      } catch { /* ignore */ }
       return session;
     };
   }
@@ -139,16 +144,12 @@
     emit();
   }, true);
 
-  // 3) Licence server address: the request whose body is the CDM's licence message.
-  const isLicenseBody = (body) => {
-    const len = body instanceof ArrayBuffer ? body.byteLength : ArrayBuffer.isView(body) ? body.byteLength : -1;
-    return len > 0 && lastMessageLen > 0 && Date.now() - lastMessageAt < 15000 && Math.abs(len - lastMessageLen) <= 4096;
-  };
-  const noteLicense = (url) => {
-    try { const u = new URL(url, location.href); push(state.licenseUrls, u.origin + u.pathname); emit(); } catch { /* ignore */ }
-  };
+  // 3) Licence server address: VidPull's service worker matches the size of the CDM's licence
+  // message (recorded below) against POST requests it sees on the network. Nothing here touches
+  // the page's own fetch()/XHR calls, so a request the site's own security policy blocks is never
+  // blamed on VidPull.
   // 5) Videos named in AJAX/JSON responses (SPAs, feeds, "load more", players that fetch their
-  // config): media URLs inside JSON are reported before the video ever plays. Read-only, on a clone.
+  // config): media URLs inside JSON are reported before the video ever plays. Read-only.
   const MEDIA_RE = /https?:(?:\\?\/){2}[^"'\s<>]+?\.(?:mp4|m4v|webm|mov|mkv|m3u8|mpd|ogv|flv|3gp|mpe?g)(?:\?[^"'\s<>]*)?(?=["'\s<>,\]}]|\\u0026|$)/gi;
   const sniffed = new Set();
   const allFound = []; // replayed when VidPull's content script (document_idle) starts listening
@@ -173,41 +174,43 @@
     }
   }
   const isJsonType = (ct) => /json|javascript|text\/plain/i.test(ct || '');
-  const origFetch = window.fetch;
-  if (origFetch) {
-    window.fetch = function fetch(input, init) {
-      try {
-        const body = init && init.body;
-        if (body && isLicenseBody(body)) noteLicense(typeof input === 'string' ? input : input?.url);
-      } catch { /* ignore */ }
-      const p = origFetch.apply(this, arguments);
-      p.then((r) => {
-        try {
-          if (r && r.ok && isJsonType(r.headers.get('content-type')) && Number(r.headers.get('content-length') || 0) < 3e6) {
-            r.clone().text().then(sniffText, () => {});
-          }
-        } catch { /* ignore */ }
-      }, () => {});
+  // Read JSON *after* the page asks for it (Response.text/json), never inside fetch() itself.
+  const RP = window.Response && Response.prototype;
+  const looksJson = (r) => { try { return r.ok && isJsonType(r.headers.get('content-type')); } catch { return false; } };
+  if (RP && RP.text) {
+    const origText = RP.text;
+    RP.text = function text() {
+      const p = origText.apply(this, arguments);
+      if (looksJson(this)) p.then(sniffText, () => {});
       return p;
     };
   }
+  if (RP && RP.json) {
+    const origJson = RP.json;
+    RP.json = function json() {
+      const p = origJson.apply(this, arguments);
+      if (looksJson(this)) p.then((o) => { try { sniffText(JSON.stringify(o)); } catch { /* ignore */ } }, () => {});
+      return p;
+    };
+  }
+  // XHR: watch the response from open() (send(), where the network request starts, is untouched).
   const XO = XMLHttpRequest.prototype;
   const origOpen = XO.open;
-  const origSend = XO.send;
-  XO.open = function open(method, url) { try { this.__vpUrl = url; } catch { /* ignore */ } return origOpen.apply(this, arguments); };
-  XO.send = function send(body) {
-    try { if (body && isLicenseBody(body)) noteLicense(this.__vpUrl); } catch { /* ignore */ }
+  XO.open = function open() {
     try {
-      this.addEventListener('load', () => {
-        try {
-          if (this.status >= 200 && this.status < 300 && isJsonType(this.getResponseHeader('content-type'))) {
-            if (this.responseType === '' || this.responseType === 'text') sniffText(this.responseText);
-            else if (this.responseType === 'json' && this.response) sniffText(JSON.stringify(this.response));
-          }
-        } catch { /* ignore */ }
-      }, { once: true });
+      if (!this.__vpWatch) {
+        this.__vpWatch = true;
+        this.addEventListener('load', () => {
+          try {
+            if (this.status >= 200 && this.status < 300 && isJsonType(this.getResponseHeader('content-type'))) {
+              if (this.responseType === '' || this.responseType === 'text') sniffText(this.responseText);
+              else if (this.responseType === 'json' && this.response) sniffText(JSON.stringify(this.response));
+            }
+          } catch { /* ignore */ }
+        });
+      }
     } catch { /* ignore */ }
-    return origSend.apply(this, arguments);
+    return origOpen.apply(this, arguments);
   };
 
   // 4) Can this browser's CDM keep licences offline? (asked once, with the browser's own API)

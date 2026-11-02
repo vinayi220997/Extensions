@@ -156,11 +156,11 @@ node test2.mjs                # 81 checks — every 2.0 feature
 node test3.mjs                # 33 checks — sorting, defaults, pause/resume, frame lock
 node test4.mjs                # 37 checks — page sidebar Max/Mini/Auto-hide, icon controls, resize, persistence
 node test5.mjs                # 17 checks — 3.0: brand, one sidebar at a time, Close in Mini, theme-coloured icons, app-shell push
-node test6.mjs                # 49 checks — 3.1: real EME/ClearKey playback, CENC DASH + cbcs HLS (Shaka Packager), DRM statuses, AJAX, formats
+node test6.mjs                # 52 checks — 3.1: real EME/ClearKey playback, CENC DASH + cbcs HLS (Shaka Packager), DRM statuses, AJAX, formats
 node pin-click.mjs            # real-mouse check: hover the handle, click the Auto-hide icon to pin back
 ```
 
-Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41**, **81/81**, **33/33**, **37/37**, **17/17**, **49/49** and the real-mouse check. test6 needs `./make-drm-fixtures.sh` (ffmpeg + Shaka Packager) first.
+Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41**, **81/81**, **33/33**, **37/37**, **17/17**, **52/52** and the real-mouse check. test6 needs `./make-drm-fixtures.sh` (ffmpeg + Shaka Packager) first.
 
 The 2.0 suite covers:
 - detection

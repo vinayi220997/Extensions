@@ -80,6 +80,16 @@ http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' });
     return res.end(JSON.stringify({ media: { src: `http://localhost:${PORT}/media/clip.webm` } }));
   }
+  // Page with a strict Content-Security-Policy that blocks a third-party ad request (like the
+  // cdn.moloco.com report): the block must be attributed to the page, never to VidPull.
+  if (url.pathname === '/page-csp.html') {
+    res.writeHead(200, { 'content-type': 'text/html', 'content-security-policy': "connect-src 'self'" });
+    return res.end(`<!doctype html><title>CSP page</title><h1>CSP</h1><script>
+      fetch('https://cdn.example-ads.test/p/rc/x.json').catch(() => {});
+      const x = new XMLHttpRequest(); x.open('GET', 'https://cdn.example-ads.test/p/rc/y.json'); try { x.send(); } catch {}
+      fetch('/api/feed.json').then((r) => r.json()).then(() => { document.title = 'CSP page ok'; });
+    </script>`);
+  }
   if (url.pathname === '/__log') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(log)); }
   if (url.pathname === '/live/live.m3u8') {
     if (!START || Date.now() - START > 50000) START = Date.now();
