@@ -1,0 +1,3 @@
+<!doctype html><html><head><meta charset="utf-8"><title>FairPlay and Widevine HLS</title></head><body><h1>HLS with SAMPLE-AES</h1>
+<video id="v" controls width="640"></video>
+<script>Promise.all([fetch('/media/drm/fairplay.m3u8'), fetch('/media/drm/widevine-hls.m3u8'), fetch('/media/drm/sphls/master.m3u8')]).then(() => { document.body.dataset.loaded = '1'; });</script></body></html>

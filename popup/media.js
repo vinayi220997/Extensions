@@ -7,19 +7,23 @@ import { pickVariant, saveSettings, saveSiteRules, SORT_OPTIONS } from '../lib/s
 import { ctx, send, toast, copyText, fileNameOf, store, onTabChange, siteAction, siteRuleFor, ACTIVE } from './ctx.js';
 import { setFooter } from './app.js';
 import { saveMediaDialog } from './library.js';
+import { drmStatuses, providerOffline } from '../lib/drm.js';
 
 const $ = (id) => document.getElementById(id);
 const FILTERS = [
   { id: 'all', label: 'All', test: () => true },
-  { id: 'video', label: 'Video', test: (i) => !isAudio(i) },
-  { id: 'audio', label: 'Audio', test: (i) => isAudio(i) },
-  { id: 'stream', label: 'Streams', test: (i) => i.kind === 'hls' || i.kind === 'dash' },
-  { id: 'file', label: 'Files', test: (i) => i.kind === 'file' || i.kind === 'blob' }
+  { id: 'mp4', label: 'MP4', test: (i) => (i.kind === 'file' || i.kind === 'blob') && !isAudio(i) && ['mp4', 'm4v'].includes((i.ext || '').toLowerCase()) },
+  { id: 'hls', label: 'HLS', test: (i) => i.kind === 'hls' },
+  { id: 'dash', label: 'DASH', test: (i) => i.kind === 'dash' },
+  { id: 'other', label: 'Other', test: (i) => (i.kind === 'file' || i.kind === 'blob') && !isAudio(i) && !['mp4', 'm4v'].includes((i.ext || '').toLowerCase()) },
+  { id: 'audio', label: 'Audio', test: (i) => isAudio(i) && i.kind !== 'drm' },
+  { id: 'drm', label: 'DRM', test: (i) => !!i.drm || i.status === 'drm' }
 ];
 
 let items = [];
 let pageState = {};
 let filter = store('mediaFilter') || 'all';
+if (!FILTERS.some((f) => f.id === filter)) filter = 'all'; // saved from an older version
 let query = '';
 const chosen = new Map(); // mediaId → variantId picked in the quality dropdown
 let signature = '';
@@ -138,7 +142,9 @@ function renderFilters() {
   const box = $('mediaFilters');
   box.replaceChildren(...FILTERS.map((f) => {
     const n = items.filter(f.test).length;
-    const b = h('button', { class: `chip-btn${filter === f.id ? ' active' : ''}`, 'aria-pressed': String(filter === f.id), disabled: f.id !== 'all' && !n && filter !== f.id },
+    // Only formats present on this page get a chip (All always shows).
+    if (f.id !== 'all' && !n && filter !== f.id) return '';
+    const b = h('button', { class: `chip-btn${filter === f.id ? ' active' : ''}`, 'aria-pressed': String(filter === f.id), 'data-filter': f.id },
       f.label, f.id === 'all' ? null : h('b', { text: String(n) }));
     b.addEventListener('click', () => { filter = f.id; store('mediaFilter', filter); render(true); });
     return b;
@@ -150,13 +156,21 @@ function renderNotices() {
   const n = pageState.notices || {};
   const hasStream = items.some((i) => i.kind === 'hls' || i.kind === 'dash');
   const out = [];
-  if (n.drm) {
+  if (n.drm && !items.some((i) => i.drm)) {
     out.push(h('div', { class: 'notice drm' }, icon('lock'),
       h('span', { text: 'This page plays DRM-protected video. Protected videos can’t be downloaded — VidPull never bypasses copy protection.' })));
   }
   if (n.mse && !hasStream && !n.drm) {
     out.push(h('div', { class: 'notice' }, icon('info'),
       h('span', { text: 'This page uses a streaming player. Play the video for a few seconds so VidPull can catch its stream. If nothing appears, the site uses a protected or unsupported delivery method.' })));
+  }
+  // Sites whose videos only play through their own protected player: point to the official way.
+  const provider = !items.length && ctx.tab?.url ? providerOffline(ctx.tab.url) : null;
+  if (provider) {
+    const link = h('button', { class: 'btn small', type: 'button' }, 'How to download');
+    link.addEventListener('click', () => chrome.tabs.create({ url: provider.url }));
+    out.push(h('div', { class: 'notice', 'data-notice': 'provider' }, icon('info'),
+      h('span', { text: `${provider.name} streams through its own protected player, so VidPull can't save these videos. Official offline viewing: ${provider.how}` }), link));
   }
   box.replaceChildren(...out);
 }
@@ -310,6 +324,7 @@ function kindChip(item) {
   if (item.kind === 'hls') return 'HLS';
   if (item.kind === 'dash') return 'DASH';
   if (item.kind === 'blob') return 'BLOB';
+  if (item.kind === 'drm') return 'DRM';
   return (item.ext || 'file').toUpperCase();
 }
 
@@ -352,7 +367,7 @@ function mediaCard(item) {
     h('span', { class: 'chip kind', text: kindChip(item) }),
     item.live ? h('span', { class: 'chip live', text: 'Live' }) : null,
     item.encrypted ? h('span', { class: 'chip', text: 'AES', title: 'Encrypted with a clear key – VidPull decrypts it' }) : null,
-    item.drm || item.status === 'drm' ? h('span', { class: 'chip warn', text: 'DRM' }) : null,
+    item.drm || item.status === 'drm' ? h('span', { class: 'chip warn', text: item.drmInfo?.systems?.length ? `DRM · ${item.drmInfo.systems.join(' + ')}` : 'DRM', title: 'DRM protected' }) : null,
     res ? h('span', { text: res }) : null,
     audio ? h('span', { text: 'Audio' }) : null,
     durationSpan(item),
@@ -377,8 +392,7 @@ function mediaCard(item) {
     return card;
   }
   if (item.drm || item.status === 'drm') {
-    card.append(h('div', { class: 'note' }, icon('lock'), h('span', { text: 'DRM-protected — this video can be played but not downloaded.' })));
-    card.append(h('div', { class: 'actions' }, h('span', { class: 'spacer' }), removeBtn()));
+    drmBlock(card, item, removeBtn);
     return card;
   }
 
@@ -404,6 +418,35 @@ function mediaCard(item) {
     card.append(h('div', { class: 'note info' }, icon('info'), h('span', { text: 'In-page video: saved straight from the page into your Downloads folder.' })));
   }
   return card;
+}
+
+// DRM-protected videos stay in the list with what was identified and why they can't be saved.
+function drmBlock(card, item, removeBtn) {
+  const d = item.drmInfo || {};
+  const statuses = drmStatuses(d, { pageUrl: item.pageUrl });
+  const chips = h('div', { class: 'drm-status' }, ...statuses.map((s) => h('span', {
+    class: `chip ${s.ok ? (s.id === 'authorized' || s.id === 'offline' ? 'good' : 'warn') : 'bad'}`, 'data-status': s.id,
+    text: { detected: 'DRM detected', protected: 'DRM protected', type: 'Type identified', authorized: 'Official download', offline: s.ok ? 'Offline licences' : 'No offline licences', unavailable: 'Download unavailable' }[s.id],
+    title: s.detail ? `${s.label} — ${s.detail}` : s.label
+  })));
+  card.append(chips);
+  const qualities = item.variants.filter((v) => v.kind !== 'drm' && !v.audioOnly).map((v) => resolutionLabel(v.height, v.width)).filter(Boolean);
+  const facts = [
+    d.systems?.length ? d.systems.join(' + ') : 'Unknown DRM',
+    d.schemes?.length ? d.schemes.join('/') : '',
+    (d.protocols || [])[0] || '',
+    qualities.length ? [...new Set(qualities)].slice(0, 5).join(', ') : ''
+  ].filter(Boolean).join(' · ');
+  card.append(h('div', { class: 'note' }, icon('lock'), h('span', { class: 'drm-reason', text: `${facts}. ${statuses.find((s) => s.id === 'unavailable').detail}` })));
+  const provider = providerOffline(item.pageUrl);
+  const actions = [h('span', { class: 'spacer' })];
+  if (provider) {
+    const a = h('button', { class: 'btn small', type: 'button', title: provider.how, 'data-action': 'official' }, icon('download'), `Official download (${provider.name})`);
+    a.addEventListener('click', () => chrome.tabs.create({ url: provider.url }));
+    actions.push(a);
+  }
+  actions.push(iconButton('info', 'Protection details', () => detailsDialog(item)), removeBtn());
+  card.append(h('div', { class: 'actions' }, ...actions));
 }
 
 function durationSpan(item) {
@@ -727,7 +770,26 @@ function detailsDialog(item) {
     ...item.variants.map((v) => h('div', { class: 'meta', style: { justifyContent: 'space-between', flexWrap: 'nowrap' } },
       h('span', { class: 'ellipsis', text: `${v.label}${v.codecs ? ` · ${v.codecs}` : ''}`, title: v.url }),
       iconButton('copy', 'Copy this quality’s URL', () => copyText(v.url))))) : null;
-  infoDialog('Media details', h('div', {}, kv, variants,
+  const d = item.drmInfo;
+  const protection = item.drm ? h('div', { class: 'drm-details' },
+    h('div', { style: { fontWeight: 600, margin: '8px 0 4px' }, text: 'Protection' }),
+    h('dl', { class: 'kv' },
+      row('DRM systems signalled', d?.systems?.join(', ') || 'Not identified yet — play the video'),
+      row('Key system in use', d?.keySystems?.join(', ')),
+      row('Requested by the player', d?.requested?.length ? [...new Set(d.requested)].join(', ') : ''),
+      row('Encryption', d?.schemes?.length ? d.schemes.map((x) => ({ cenc: 'cenc (AES-CTR, Common Encryption)', cbcs: 'cbcs (AES-CBC pattern, Common Encryption)', cens: 'cens (AES-CTR pattern)', cbc1: 'cbc1 (AES-CBC)' }[x] || x)).join(', ') : ''),
+      row('Streaming protocol', d?.protocols?.join(', ')),
+      row('Licence server', d?.licenseUrls?.join('\n')),
+      row('Key IDs', d?.kids?.join(', ')),
+      row('Security level', d?.robustness?.join(', ')),
+      row('Session types', d?.sessionTypes?.join(', ')),
+      row('Formats', d?.formats?.join(', ')),
+      row('Codecs', d?.codecs?.join(', ')),
+      row('Offline licences (this browser)', d?.persistentLicense === true ? 'Supported by the CDM — only the site\u2019s own player can request them' : d?.persistentLicense === false ? 'Not supported' : ''),
+      row('Found in', d?.sources?.map((s) => ({ manifest: 'stream manifest', eme: 'player (Encrypted Media Extensions)' }[s] || s)).join(', '))),
+    h('ul', { class: 'drm-steps' }, ...drmStatuses(d || {}, { pageUrl: item.pageUrl }).map((s) => h('li', { class: s.ok ? 'ok' : 'no' },
+      h('b', { text: `${s.ok ? '✓' : '✕'} ${s.label}` }), s.detail ? h('div', { class: 'muted', text: s.detail }) : null)))) : null;
+  infoDialog('Media details', h('div', {}, kv, variants, protection,
     h('div', { class: 'actions' }, h('button', { class: 'btn small', type: 'button', onclick: () => copyText(item.url) }, icon('copy'), 'Copy URL'),
       h('button', { class: 'btn small', type: 'button', onclick: () => copyText(JSON.stringify(item, null, 2), 'Details copied') }, 'Copy all as JSON'))));
 }

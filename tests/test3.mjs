@@ -106,9 +106,11 @@ await step('sorting', async () => {
   check('Download status shown on the card + Sort by status (not downloaded first)', chip === 1 && t[2] === 'apple short clip', t.join('|'));
 
   // Sorting + filtering together
-  await p.locator('#mediaFilters .chip-btn', { hasText: 'Files' }).click();
+  await p.locator('#mediaFilters .chip-btn[data-filter="mp4"]').click();
   t = await sortBy('size-desc');
-  check('Sorting works together with filters', t.join('|') === 'Zebra long video|apple short clip', t.join('|'));
+  await p.locator('#mediaFilters .chip-btn[data-filter="other"]').click();
+  const t2 = await sortBy('size-asc');
+  check('Sorting works together with filters (MP4 / Other)', t.join('|') === 'Zebra long video' && t2.join('|') === 'apple short clip', `${t.join('|')} / ${t2.join('|')}`);
   await p.locator('#mediaFilters .chip-btn', { hasText: 'All' }).click();
   await p.fill('#mediaSearch', 'e');
   t = await sortBy('name-desc');

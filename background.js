@@ -5,7 +5,8 @@ import {
 } from './lib/util.js';
 import { getSettings, DEFAULT_SETTINGS, validate as validateSettings, pickVariant, pickAudioVariant, getSiteRules, normalizeSiteRules } from './lib/settings.js';
 import { getAddons, urlMatches, SCRIPT_PRELUDE } from './lib/addons.js';
-import { parseM3U8, isPlaylist, hlsVariantLabel } from './lib/hls.js';
+import { parseM3U8, isPlaylist, hlsVariantLabel, hlsDrmInfo } from './lib/hls.js';
+import { mergeDrm, systemFromKeySystem, drmReason, parsePssh } from './lib/drm.js';
 import { parseMPD, dashRepLabel } from './lib/dash.js';
 
 const TAB_NONE = -1;
@@ -141,9 +142,14 @@ async function onNetworkResponse(d, headers, referer) {
   if (IGNORED_HOSTS.some((re) => re.test(host))) return;
   let c = classify(url, headers['content-type']);
   if (!c) c = await addonNetworkMatch(url, headers['content-type']);
+  const size = totalSize(headers);
+  // A whole MPEG transport-stream file (.ts/.m2ts/.mts recording), not a 2–10 s HLS segment:
+  // fetched in one go (no Range) and big. HLS segments stay hidden.
+  if (c?.kind === 'segment' && /^(ts|m2ts|mts)$/.test(extFromUrl(url)) && size >= 25 * 1024 * 1024 && d.statusCode === 200) {
+    c = { kind: 'file', ext: extFromUrl(url), audio: false };
+  }
   if (!c || c.kind === 'segment') return;
   const s = await settings();
-  const size = totalSize(headers);
   if (c.kind === 'file' && size != null && size < s.minFileSizeKB * 1024) {
     // Remember small files so the DOM scanner doesn't re-add them (ads, looping GIF-videos).
     const norm = normalizeMediaUrl(url);
@@ -247,6 +253,7 @@ async function addMedia(tabId, info) {
   });
   if (created) {
     updateBadge(tabId);
+    if (info.kind === 'file') readTab(tabId).then((st) => { if (Object.values(st.eme || {}).some((e) => e.active)) checkEncryptedFiles(tabId); });
     if (info.kind === 'hls' || info.kind === 'dash') probeManifest(tabId, id).catch((e) => console.warn('[VidPull] probe', e));
   }
 }
@@ -267,6 +274,113 @@ function variantForFile(item) {
   };
 }
 
+// ---------------------------------------------------------------------------
+// DRM: EME activity reported by content-eme.js. Protected videos are always listed: they join
+// the DRM-flagged manifest items, or get their own entry when no manifest was seen.
+const strs = (a, n = 12) => (Array.isArray(a) ? a.filter((x) => typeof x === 'string').map((x) => x.slice(0, 200)).slice(0, n) : []);
+function emeToDrm(info) {
+  const keySystems = strs(info.keySystems);
+  const systems = [...new Set([...keySystems.map(systemFromKeySystem), ...strs(info.psshSystems)])].filter(Boolean);
+  const ct = strs(info.contentTypes).join(' ');
+  return {
+    systems, keySystems,
+    requested: strs(info.requested).map(systemFromKeySystem),
+    schemes: strs(info.schemes),
+    robustness: strs(info.robustness),
+    sessionTypes: strs(info.sessionTypes),
+    licenseUrls: strs(info.licenseUrls, 4).filter((u) => /^https?:/i.test(u)),
+    kids: strs(info.kids, 6).filter((k) => /^[0-9a-f]{32}$/.test(k)),
+    protocols: ['MSE / EME'],
+    sources: ['eme'],
+    persistentLicense: typeof info.persistentLicense === 'boolean' ? info.persistentLicense : null,
+    formats: [...new Set([...ct.matchAll(/(video|audio)\/(mp4|webm)/g)].map((m) => m[2].toUpperCase()))],
+    codecs: [...new Set([...ct.matchAll(/codecs="?([^"]+)"?/g)].map((m) => m[1].split('.')[0]))].slice(0, 6),
+    active: !!info.active,
+    video: { width: +info.video?.width || 0, height: +info.video?.height || 0, duration: +info.video?.duration || 0 }
+  };
+}
+function applyEme(st, frameId, info, tab, frameUrl) {
+  const eme = emeToDrm(info);
+  st.eme = { ...(st.eme || {}), [frameId]: eme };
+  if (!eme.active) return; // capability checks alone (common on many sites) are not protected playback
+  const all = mergeDrm(...Object.values(st.eme).filter((e) => e.active));
+  all.formats = [...new Set(Object.values(st.eme).flatMap((e) => e.formats || []))];
+  all.codecs = [...new Set(Object.values(st.eme).flatMap((e) => e.codecs || []))];
+  const drmItems = Object.values(st.items).filter((it) => it.drm);
+  for (const it of drmItems) if (it.kind !== 'drm') it.drmInfo = mergeDrm(it.manifestDrm, all);
+  const realStreams = drmItems.filter((it) => it.kind !== 'drm');
+  const id = `drm_${frameId}`;
+  if (realStreams.length) { delete st.items[id]; return; }
+  const v = info.video || {};
+  const prev = st.items[id];
+  const pageUrl = /^https?:/.test(frameUrl || '') ? frameUrl : tab.url;
+  st.items[id] = {
+    ...(prev || {}),
+    id, url: pageUrl, kind: 'drm', ext: (all.formats[0] || 'MP4').toLowerCase(), mime: '', size: null, audioOnly: false,
+    width: +v.width || prev?.width || 0, height: +v.height || prev?.height || 0, duration: +v.duration || prev?.duration || 0,
+    poster: /^https?:/i.test(v.poster || '') ? v.poster : (prev?.poster || st.thumb || ''),
+    referer: tab.url, pageUrl: tab.url,
+    title: prev?.customTitle ? prev.title : ((typeof info.title === 'string' && info.title.slice(0, 200)) || tab.title || hostOf(tab.url)),
+    customTitle: prev?.customTitle || '', titleFixed: false, selectorText: st.selectorText || '', frameId,
+    sources: ['eme'], detectedAt: prev?.detectedAt || Date.now(), status: 'drm',
+    variants: [{ id: 'drm', kind: 'drm', url: pageUrl, width: +v.width || 0, height: +v.height || 0, bandwidth: 0, codecs: all.codecs.join(', '), ext: 'mp4', audioOnly: false,
+      label: [resolutionLabel(+v.height || 0, +v.width || 0), 'Protected stream'].filter(Boolean).join(' · ') }],
+    live: false, encrypted: true, drm: true, drmInfo: all, error: drmReason(all)
+  };
+}
+
+// On pages with protected playback, MP4 files may be Common-Encryption files (encv/enca sample
+// entries, a 'schm' box naming cenc/cbcs, PSSH boxes in the header). Look at the file header
+// once (first 256 KB) and mark such files as DRM so they're never offered as a broken download.
+const encChecked = new Set();
+async function checkEncryptedFiles(tabId) {
+  const st = await readTab(tabId);
+  const todo = Object.values(st.items).filter((it) => it.kind === 'file' && !it.drm && /^(mp4|m4v|mov|m4a|3gp)$/.test(it.ext || '') && !encChecked.has(`${tabId}|${it.id}`));
+  for (const it of todo.slice(0, 8)) {
+    encChecked.add(`${tabId}|${it.id}`);
+    let info = null;
+    const ruleId = await addHeaderRule(it.url, it.referer);
+    try {
+      const res = await fetch(it.url, { credentials: probeCredentials(it), headers: { Range: 'bytes=0-262143' }, cache: 'no-store' });
+      const buf = new Uint8Array(await res.arrayBuffer()).subarray(0, 262144);
+      info = mp4Protection(buf);
+    } catch { /* unreachable: leave as is */ } finally { await removeHeaderRule(ruleId); }
+    if (!info) continue;
+    await mutateTab(tabId, (s) => {
+      const item = s.items[it.id];
+      if (!item) return;
+      const active = Object.values(s.eme || {}).filter((e) => e.active);
+      item.drm = true;
+      item.status = 'drm';
+      item.manifestDrm = info;
+      const v = active.map((e) => e.video).find((x) => x?.width);
+      if (v && !item.width) Object.assign(item, { width: v.width, height: v.height, duration: item.duration || v.duration });
+      item.drmInfo = mergeDrm(info, ...active);
+      item.error = drmReason(item.drmInfo);
+      for (const k of Object.keys(s.items)) if (s.items[k].kind === 'drm') delete s.items[k];
+    });
+    updateBadge(tabId);
+  }
+}
+function mp4Protection(u8) {
+  const find = (tag, from = 0) => {
+    const t = [...tag].map((c) => c.charCodeAt(0));
+    for (let i = from; i + 4 <= u8.length; i++) if (u8[i] === t[0] && u8[i + 1] === t[1] && u8[i + 2] === t[2] && u8[i + 3] === t[3]) return i;
+    return -1;
+  };
+  if (find('encv') < 0 && find('enca') < 0) return null;
+  const info = { systems: [], schemes: [], kids: [], protocols: ['MP4 file (Common Encryption)'], sources: ['file'] };
+  const schm = find('schm');
+  if (schm > 0) info.schemes.push(String.fromCharCode(...u8.subarray(schm + 8, schm + 12)));
+  const tenc = find('tenc');
+  if (tenc > 0 && tenc + 28 <= u8.length) info.kids.push([...u8.subarray(tenc + 12, tenc + 28)].map((b) => b.toString(16).padStart(2, '0')).join(''));
+  for (let p = find('pssh'); p > 3; p = find('pssh', p + 4)) {
+    const size = (u8[p - 4] << 24 | u8[p - 3] << 16 | u8[p - 2] << 8 | u8[p - 1]) >>> 0;
+    for (const x of parsePssh(u8.subarray(p - 4, p - 4 + size))) { info.systems.push(x.system); info.kids.push(...x.kids); }
+  }
+  return info;
+}
+
 async function probeManifest(tabId, id) {
   const state = await readTab(tabId);
   const item = state.items[id];
@@ -282,6 +396,13 @@ async function probeManifest(tabId, id) {
     const it = st.items[id];
     if (!it) return;
     Object.assign(it, patch);
+    if (it.drm) {
+      const active = Object.values(st.eme || {}).filter((e) => e.active);
+      it.drmInfo = mergeDrm(it.manifestDrm || { protocols: [it.kind === 'hls' ? 'HLS' : 'DASH'], sources: ['manifest'] }, ...active);
+      it.error = drmReason(it.drmInfo);
+      // A real manifest replaces the stand-in entry made from EME activity.
+      for (const k of Object.keys(st.items)) if (st.items[k].kind === 'drm') delete st.items[k];
+    }
     if (patch.childUrls?.length) {
       st.childUrls = [...new Set([...st.childUrls, ...patch.childUrls])].slice(-500);
       // If the player fetched a variant playlist before we parsed the master, drop it.
@@ -322,11 +443,14 @@ async function describeHls(text, item) {
     if (best) {
       try {
         const media = parseM3U8(await fetchText(best.url, item.referer, probeCredentials(item)), best.url);
-        meta = { duration: media.totalDuration, live: media.live, encrypted: media.encrypted, drm: media.drm };
+        meta = { duration: media.totalDuration, live: media.live, encrypted: media.encrypted, drm: media.drm, keys: media.keys };
       } catch { /* informational only */ }
     }
     const top = best || variants[0];
+    const manifestDrm = hlsDrmInfo([...(pl.keys || []), ...(meta.keys || [])]);
+    if (manifestDrm) meta.drm = true;
     return {
+      manifestDrm,
       status: meta.drm ? 'drm' : 'ready',
       variants,
       childUrls: pl.variants.map((v) => normalizeMediaUrl(v.url)).concat(pl.audios.map((a) => normalizeMediaUrl(a.url))),
@@ -339,6 +463,7 @@ async function describeHls(text, item) {
     };
   }
   return {
+    manifestDrm: hlsDrmInfo(pl.keys),
     status: pl.drm ? 'drm' : 'ready',
     variants: [{
       id: 'v0', kind: 'hls', url: item.url, width: item.width, height: item.height, bandwidth: 0,
@@ -364,6 +489,7 @@ function describeDash(text, item) {
     }));
   const top = variants.find((v) => !v.audioOnly);
   return {
+    manifestDrm: mpd.drmInfo,
     status: mpd.drm ? 'drm' : (mpd.live || mpd.multiPeriod) ? 'error' : 'ready',
     error: mpd.live ? 'Live DASH streams are not supported' : mpd.multiPeriod ? 'Multi-period DASH (e.g. with ad breaks) is not supported' : '',
     variants,
@@ -1628,6 +1754,14 @@ async function handleMessage(msg, sender) {
       const items = (msg.items || []).slice(0, 80); // the content script already applies the detection settings
       for (const m of items) if (!m.selectorText && msg.selectorText) m.selectorText = msg.selectorText;
       await ingestReportedMedia(tabId, items, 'dom', sender);
+      return null;
+    }
+    case 'eme-info': {
+      const tabId = sender.tab?.id;
+      if (tabId == null || tabId < 0 || !msg.info) return null;
+      await mutateTab(tabId, (st) => applyEme(st, sender.frameId ?? 0, msg.info, sender.tab, msg.pageUrl));
+      updateBadge(tabId);
+      if (msg.info.active) checkEncryptedFiles(tabId);
       return null;
     }
     case 'float-hello':

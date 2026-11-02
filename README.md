@@ -1,4 +1,4 @@
-# VidPull 3.0 – Video Downloader (Chrome, Manifest V3)
+# VidPull 3.1 – Video Downloader (Chrome, Manifest V3)
 
 VidPull finds the videos and audio on the page you're watching and saves them in the quality and format you choose. It's a from-scratch rebuild of the core ideas behind Video DownloadHelper, written in plain JavaScript with no build step.
 
@@ -13,7 +13,23 @@ VidPull finds the videos and audio on the page you're watching and saves them in
 
 Requires Chrome 120 or newer. The same folder also loads in Edge and Brave.
 
-## What's new in 3.0 — VidPull
+## What's new in 3.1 — DRM detection and wider format support
+
+- **DRM-protected videos are always listed.** VidPull identifies the protection and shows it on the card:
+  - DRM system: Widevine, PlayReady, FairPlay, Adobe Primetime, ClearKey, Marlin or Nagra
+  - encryption scheme: cenc, cbcs or SAMPLE-AES
+  - streaming protocol: DASH, HLS, MSE/EME or an encrypted MP4 file
+  - licence server address, key IDs, security level, qualities, formats and codecs
+  - whether this browser can keep offline licences
+- **Statuses on protected cards:** DRM detected, DRM protected, Type identified, Official download (where the provider offers one), Offline licences, and Download unavailable with the exact technical reason. Open ⓘ for the full Protection section.
+- **No fake buttons.** VidPull doesn't download DRM-protected video, because that needs the decryption keys, which only the browser's protected module holds. Where the provider has an official offline mode (Netflix, Prime Video, Disney+, YouTube Premium, JioHotstar and others), **Official download** opens the provider's instructions.
+- **Plain AES-128 HLS isn't DRM.** It still downloads and decrypts as before.
+- **Videos found in AJAX/JSON responses.** Single-page apps and feeds often name video URLs in API responses before anything plays. VidPull now reads those (fetch and XMLHttpRequest, including escaped `\/` slashes).
+- **More formats:** MPEG (.mpg/.mpeg), 3G2, F4V and ASF were added. Whole .ts/.m2ts/.mts recordings over 25 MB are now listed, while HLS segments stay hidden.
+- **New filters:** All · MP4 · HLS · DASH · Other · Audio · DRM. Only formats present on the page get a chip.
+- Research notes on how the DRM detection was built are in `docs/DRM-research.md`.
+
+## What was new in 3.0 — VidPull
 
 - **New name and brand colour.** VidSnag is now **VidPull**, with orange as the default colour. Downloads go to a `VidPull` folder; an old `VidSnag` folder setting moves over automatically.
 - **Icons follow your theme colour.** The toolbar icon, the logo in the panel and Settings, the auto-hide edge handle and the resize grip all repaint when you pick a colour in Settings › Appearance (custom colours too).
@@ -140,10 +156,11 @@ node test2.mjs                # 81 checks — every 2.0 feature
 node test3.mjs                # 33 checks — sorting, defaults, pause/resume, frame lock
 node test4.mjs                # 37 checks — page sidebar Max/Mini/Auto-hide, icon controls, resize, persistence
 node test5.mjs                # 17 checks — 3.0: brand, one sidebar at a time, Close in Mini, theme-coloured icons, app-shell push
+node test6.mjs                # 49 checks — 3.1: real EME/ClearKey playback, CENC DASH + cbcs HLS (Shaka Packager), DRM statuses, AJAX, formats
 node pin-click.mjs            # real-mouse check: hover the handle, click the Auto-hide icon to pin back
 ```
 
-Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41**, **81/81**, **33/33**, **37/37**, **17/17** and the real-mouse check.
+Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41**, **81/81**, **33/33**, **37/37**, **17/17**, **49/49** and the real-mouse check. test6 needs `./make-drm-fixtures.sh` (ffmpeg + Shaka Packager) first.
 
 The 2.0 suite covers:
 - detection

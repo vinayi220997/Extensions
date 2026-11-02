@@ -29,7 +29,7 @@ const dockFrame = (page) => page.frames().find((f) => f.url().includes('mode=doc
 await step('Brand defaults', async () => {
   const s = await settings();
   const m = await sw.evaluate(() => chrome.runtime.getManifest());
-  check('Manifest is VidPull 3.0.0', m.name.startsWith('VidPull') && m.version === '3.0.0', `${m.name} ${m.version}`);
+  check('Manifest is VidPull 3.x', m.name.startsWith('VidPull') && m.version.startsWith('3.'), `${m.name} ${m.version}`);
   check('Default colour is orange, folder VidPull', s.accent === 'orange' && s.subfolder === 'VidPull', `${s.accent} ${s.subfolder}`);
 });
 

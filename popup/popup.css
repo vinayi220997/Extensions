@@ -269,3 +269,14 @@ body[data-mode="dock"] .top { padding-right: 4px; }
   body.mini .empty p, body.mini .empty-actions { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .ring .bar, .mode-switch button { transition: none; } }
+
+/* DRM-protected entries (3.1) */
+.drm-status { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.chip.bad { background: color-mix(in srgb, var(--danger) 13%, var(--surface)); color: var(--danger); }
+.drm-reason { color: var(--text); opacity: .85; }
+.drm-steps { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 6px; font-size: .92em; }
+.drm-steps li.ok b { color: var(--ok); }
+.drm-steps li.no b { color: var(--danger); }
+.drm-steps .muted { color: var(--muted); margin-top: 2px; }
+.list.grid .drm-status { margin: 6px 10px 0; }
+body.mini .drm-status, body.mini .drm-reason { display: none; }

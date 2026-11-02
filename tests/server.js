@@ -2,7 +2,9 @@
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = __dirname, PORT = 8765;
 const TYPES = { '.html': 'text/html', '.mp4': 'video/mp4', '.webm': 'video/webm', '.m3u8': 'application/vnd.apple.mpegurl',
-  '.ts': 'video/mp2t', '.mpd': 'application/dash+xml', '.m4s': 'video/iso.segment', '.bin': 'application/octet-stream', '.js': 'text/javascript' };
+  '.ts': 'video/mp2t', '.mpd': 'application/dash+xml', '.m4s': 'video/iso.segment', '.bin': 'application/octet-stream', '.js': 'text/javascript',
+  '.mpg': 'video/mpeg', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo', '.mkv': 'video/x-matroska', '.3gp': 'video/3gpp',
+  '.flv': 'video/x-flv', '.ogv': 'video/ogg', '.json': 'application/json' };
 // Simulated live stream: starts at the first playlist request, 2 s per segment, 30 segments.
 let START = 0;
 const LIVE_DIR = path.join(ROOT, 'media/live');
@@ -54,6 +56,29 @@ http.createServer((req, res) => {
     const f = path.join(ROOT, 'media/big.mp4');
     res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': fs.statSync(f).size });
     return fs.createReadStream(f).pipe(res);
+  }
+  // ClearKey licence server for page-eme.html (real EME licence exchange with the browser's ClearKey CDM).
+  if (url.pathname === '/drm/license' && req.method === 'POST') {
+    let body = '';
+    req.on('data', (c) => { body += c; });
+    req.on('end', () => {
+      const b64u = (hex) => Buffer.from(hex, 'hex').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      let kids = [];
+      try { kids = JSON.parse(body).kids || []; } catch { /* ignore */ }
+      log.push({ path: '/drm/license#kids', referer: kids.join(',') });
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ keys: [{ kty: 'oct', kid: b64u('a7e61c373e219033c21091fa607bf3b8'), k: b64u('76a6c65c5ea762046bd749a2e632ccbb') }], type: 'temporary' }));
+    });
+    return;
+  }
+  // AJAX feed naming videos inside JSON (escaped slashes like many APIs).
+  if (url.pathname === '/api/feed.json') {
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
+    return res.end(JSON.stringify({ data: [{ id: 1, video_url: `http://localhost:${PORT}/media/big.mp4?from=feed` }, { id: 2, variants: [{ url: `http://localhost:${PORT}/media/hls/master.m3u8?sig=a&exp=1` }] }] }).replace(/\//g, '\\/'));
+  }
+  if (url.pathname === '/api/xhr.json') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ media: { src: `http://localhost:${PORT}/media/clip.webm` } }));
   }
   if (url.pathname === '/__log') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(log)); }
   if (url.pathname === '/live/live.m3u8') {

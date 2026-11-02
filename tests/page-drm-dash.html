@@ -1,0 +1,3 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Widevine PlayReady DASH</title></head><body><h1>DASH with CENC</h1>
+<video id="v" controls width="640"></video>
+<script>Promise.all([fetch('/media/drm/stream.mpd'), fetch('/media/drm/sp/stream.mpd')]).then(() => { document.body.dataset.loaded = '1'; });</script></body></html>

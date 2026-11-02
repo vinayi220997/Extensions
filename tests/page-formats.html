@@ -1,0 +1,15 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Formats</title></head><body><h1>Container formats</h1>
+<ul>
+<li><a href="/media/fmt/sample.mpg">MPEG</a></li><li><a href="/media/fmt/sample.mov">QuickTime</a></li>
+<li><a href="/media/fmt/sample.avi">AVI</a></li><li><a href="/media/fmt/sample.mkv">Matroska</a></li>
+<li><a href="/media/fmt/sample.3gp">3GP</a></li><li><a href="/media/fmt/sample.flv">FLV</a></li>
+<li><a href="/media/fmt/sample.ogv">Ogg</a></li>
+</ul>
+<video src="/media/fmt/sample.mov" muted preload="auto" width="320"></video>
+<div id="lazy" style="margin-top:2000px"></div>
+<script>
+// Lazy-loaded: a video added only when the user scrolls down.
+addEventListener('scroll', () => { if (!document.querySelector('#lazy video')) { const v = document.createElement('video'); v.src = '/media/clip.webm?lazy=1'; v.preload = 'metadata'; document.getElementById('lazy').append(v); } }, { once: true });
+// Whole TS recording fetched in one go (not an HLS segment).
+fetch('/media/fmt/recording.ts').then((r) => r.arrayBuffer());
+</script></body></html>

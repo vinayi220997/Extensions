@@ -5,7 +5,7 @@
   if (window.__vidpullLoaded) return;
   window.__vidpullLoaded = true;
 
-  const MEDIA_EXT = /\.(mp4|m4v|webm|mkv|mov|ogv|flv|3gp|avi|wmv|mp3|m4a|aac|ogg|oga|opus|wav|flac|weba|m3u8|mpd)(\?|#|$)/i;
+  const MEDIA_EXT = /\.(mp4|m4v|webm|mkv|mov|ogv|flv|3gp|3g2|f4v|avi|wmv|mpe?g|mp3|m4a|aac|ogg|oga|opus|wav|flac|weba|m3u8|mpd)(\?|#|$)/i;
   const DATA_ATTRS = ['data-src', 'data-video', 'data-video-src', 'data-video-url', 'data-url', 'data-mp4', 'data-webm',
     'data-hls', 'data-hls-url', 'data-dash', 'data-stream', 'data-stream-url', 'data-file', 'data-source', 'data-media', 'data-href'];
 
@@ -280,6 +280,19 @@
     if (changes.settings || changes.siteRules || changes.addons) loadConfig().then(() => { lastSignature = ''; schedule(100); });
   });
 
+  // ----- EME observer (main world) → DRM report -----
+  let lastEme = '';
+  document.addEventListener('vidpull:eme', (e) => {
+    if (typeof e.detail !== 'string' || e.detail.length > 20000 || e.detail === lastEme) return;
+    let info;
+    try { info = JSON.parse(e.detail); } catch { return; }
+    if (!info || typeof info !== 'object') return;
+    lastEme = e.detail;
+    if (info.video?.poster) info.video.poster = isHttp(abs(info.video.poster)) ? abs(info.video.poster) : '';
+    chrome.runtime.sendMessage({ type: 'eme-info', info, pageUrl: location.href }).catch(() => {});
+  });
+  document.dispatchEvent(new CustomEvent('vidpull:eme-pull'));
+
   // ----- player probe (main world) → items -----
   document.addEventListener('vidpull:probe', (e) => {
     let list;
@@ -291,7 +304,7 @@
       const url = abs(x.url);
       if (!isHttp(url) || playerItems.has(url)) continue;
       playerItems.set(url, {
-        url, source: 'player', tag: 'player',
+        url, source: x.source === 'ajax' ? 'ajax' : 'player', tag: x.source === 'ajax' ? 'ajax' : 'player',
         title: typeof x.title === 'string' ? x.title.slice(0, 200) : '',
         poster: typeof x.poster === 'string' && isHttp(abs(x.poster)) ? abs(x.poster) : '',
         kind: ['hls', 'dash'].includes(x.kind) ? x.kind : kindFromUrl(url),

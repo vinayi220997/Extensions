@@ -26,7 +26,7 @@ const SECTIONS = [
       [chip('BLOB'), ' an in-page video. Saved straight from the page while it is open.'],
       [chip('Live', 'live'), ' a live broadcast — recording runs until you press ', b('Stop & save'), '.'],
       [chip('AES'), ' encrypted with a standard key that VidPull can decrypt.'],
-      [chip('DRM', 'warn'), ' copy-protected (Netflix-style). Can be played, never downloaded.'])
+      [chip('DRM', 'warn'), ' copy-protected (Widevine, PlayReady, FairPlay…). Always listed with what was identified (system, encryption, protocol, licence server, qualities) and why it can\u2019t be saved; never downloaded. ', b('Official download'), ' opens the provider\u2019s own offline instructions where they exist. Filter them with the DRM chip.'])
   ]],
   ['Downloading: quality, format, audio', false, () => [
     ul(
@@ -89,7 +89,7 @@ const SECTIONS = [
   ['Troubleshooting', false, () => [
     ul(
       [b('Nothing detected'), ': play the video for a few seconds, then click Refresh list. Still nothing? Reload the page and play again, or lower Settings › Ignore files smaller than.'],
-      [b('“DRM-protected”'), ': the site uses copy protection. VidPull does not download protected content.'],
+      [b('“DRM-protected”'), ': the site uses copy protection. The decryption keys stay inside the browser\u2019s protected module, so VidPull can\u2019t (and won\u2019t) save the video. Open \u24d8 on the card for the details. Plain AES-128 HLS is not DRM and downloads normally.'],
       [b('“Streaming player” notice'), ': the page feeds video to its player in pieces. Play the video so VidPull can find the underlying stream.'],
       [b('HTTP 403 / Server refused access'), ': the address expired or needs the page open. Reload the page, play the video and try again.'],
       [b('No sound in the file'), ': turn on Settings › Merge separate audio and video, or also download the audio track.'],
