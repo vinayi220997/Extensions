@@ -4,17 +4,19 @@ import { hostOf } from '../lib/util.js';
 const params = new URLSearchParams(location.search);
 
 export const ctx = {
-  mode: ['popup', 'sidebar', 'window', 'pip', 'tab'].includes(params.get('mode')) ? params.get('mode') : 'popup',
+  mode: ['popup', 'sidebar', 'window', 'pip', 'tab', 'float'].includes(params.get('mode')) ? params.get('mode') : 'popup',
   forcedTabId: Number(params.get('tabId')) || null,
   initialView: params.get('view') || '',
   tab: null,            // the browser tab whose media is shown
   settings: null,
   siteRules: { actions: {}, naming: {} },
   view: 'media',
+  jobs: [],             // latest download jobs (kept by jobs.js)
+  compact: false,       // Mini layout (sidebar/window "Mini" mode, and the floating panel)
   listeners: new Set()  // called when ctx.tab changes
 };
 
-export const ACTIVE = ['queued', 'starting', 'downloading', 'finalizing'];
+export const ACTIVE = ['queued', 'starting', 'downloading', 'paused', 'finalizing'];
 
 export async function send(msg) {
   const res = await chrome.runtime.sendMessage(msg);
@@ -52,8 +54,12 @@ export function store(key, value) {
 
 export function onTabChange(fn) { ctx.listeners.add(fn); }
 
+// Main-button action: a per-site rule wins over the global default (Settings › Default action).
 export function siteAction(host) {
-  return ctx.siteRules.actions[(host || '').toLowerCase()] || 'download';
+  return ctx.siteRules.actions[(host || '').toLowerCase()] || ctx.settings?.defaultAction || 'download';
+}
+export function siteRuleFor(host) {
+  return ctx.siteRules.actions[(host || '').toLowerCase()] || null;
 }
 
 export function timeAgo(ts) {

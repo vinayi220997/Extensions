@@ -3,18 +3,23 @@ import { h, icon } from '../ui/dom.js';
 import { formatBytes } from '../lib/util.js';
 import { ctx, send, toast, ACTIVE } from './ctx.js';
 import { setFooter } from './app.js';
+import { onJobs as mediaOnJobs } from './media.js';
 
 const $ = (id) => document.getElementById(id);
 let jobs = [];
 let signature = '';
 
 export const activeCount = () => jobs.filter((j) => ACTIVE.includes(j.status)).length;
+function setJobs(list) {
+  jobs = list;
+  ctx.jobs = list;
+}
 
 export async function init() {
   await refresh();
   // Direct (browser-managed) downloads report progress by polling: nudge the worker while any run.
   setInterval(() => {
-    if (jobs.some((j) => j.engine !== 'offscreen' && j.status === 'downloading')) refresh().catch(() => {});
+    if (jobs.some((j) => j.engine !== 'offscreen' && ['downloading', 'paused'].includes(j.status))) refresh().catch(() => {});
   }, 1000);
 }
 
@@ -22,14 +27,15 @@ export function show() { refresh(); }
 
 export function onStorage(changes, area) {
   if (area === 'session' && changes.jobs) {
-    jobs = Object.values(changes.jobs.newValue || {}).sort((a, b) => b.createdAt - a.createdAt);
+    setJobs(Object.values(changes.jobs.newValue || {}).sort((a, b) => b.createdAt - a.createdAt));
     render();
   }
 }
 
 async function refresh() {
-  jobs = await send({ type: 'get-jobs' });
+  setJobs(await send({ type: 'get-jobs' }));
   render();
+  mediaOnJobs();
 }
 
 function status(job) {
@@ -43,6 +49,7 @@ function status(job) {
         return [job.total ? `${pct}%` : 'Downloading…', job.total ? `${formatBytes(job.bytes)} of ${formatBytes(job.total)}` : formatBytes(job.bytes)];
       }
       return [`${pct}%${job.segmentsTotal ? ` · ${job.segmentsDone || 0}/${job.segmentsTotal} segments` : ''}${job.note ? ` · ${job.note}` : ''}`, formatBytes(job.bytes)];
+    case 'paused': return [`Paused · ${pct}%`, job.total ? `${formatBytes(job.bytes)} of ${formatBytes(job.total)}` : formatBytes(job.bytes)];
     case 'finalizing': return [job.note && /Merg|Extract/.test(job.note) ? `${job.note}…` : 'Saving file…', formatBytes(job.bytes)];
     case 'done': return ['Completed', formatBytes(job.total || job.bytes)];
     case 'error': return [job.error || 'Failed', ''];
@@ -60,7 +67,7 @@ export { openDownload };
 
 function card(job) {
   const [left, right] = status(job);
-  const indeterminate = ['queued', 'starting', 'finalizing'].includes(job.status) || (job.live && job.status === 'downloading')
+  const indeterminate = ['queued', 'starting', 'finalizing'].includes(job.status) && job.status !== 'paused' || (job.live && job.status === 'downloading')
     || (job.status === 'downloading' && !job.progress && job.engine !== 'offscreen' && !job.total);
   const width = job.status === 'done' ? 100 : Math.round((job.progress || 0) * 100);
   const fileName = (job.finalPath || job.filename || job.baseName || '').split(/[\\/]/).pop();
@@ -69,6 +76,11 @@ function card(job) {
   if (ACTIVE.includes(job.status)) {
     if (job.live && job.status === 'downloading') {
       actions.append(h('button', { class: 'btn primary', onclick: () => send({ type: 'stop-live', jobId: job.id }).then(() => toast('Saving recording…')) }, icon('stop'), 'Stop & save'));
+    }
+    if (job.status === 'downloading' && !job.live && job.engine !== 'page') {
+      actions.append(h('button', { class: 'btn', onclick: () => send({ type: 'pause', jobId: job.id }).catch((e) => toast(e.message, true)) }, icon('pause'), 'Pause'));
+    } else if (job.status === 'paused') {
+      actions.append(h('button', { class: 'btn primary', onclick: () => send({ type: 'resume', jobId: job.id }).catch((e) => toast(e.message, true)) }, icon('resume'), 'Resume'));
     }
     actions.append(h('button', { class: 'btn danger', onclick: () => send({ type: 'cancel', jobId: job.id }).catch((e) => toast(e.message, true)) }, 'Cancel'));
   } else if (job.status === 'done' && job.downloadId != null) {
@@ -95,7 +107,7 @@ function card(job) {
 
 function render() {
   $('jobsCount').textContent = activeCount() || '';
-  const sig = JSON.stringify(jobs.map((j) => [j.id, j.status, Math.round((j.progress || 0) * 200), j.bytes, j.note, j.segmentsDone]));
+  const sig = JSON.stringify(jobs.map((j) => [j.id, j.status, j.engine, Math.round((j.progress || 0) * 200), j.bytes, j.note, j.segmentsDone]));
   if (sig !== signature) {
     signature = sig;
     $('jobsList').replaceChildren(...jobs.map(card));

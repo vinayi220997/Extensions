@@ -38,7 +38,12 @@ const SVG = {
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',
   saveas: '<path d="M5 4h11l3 3v13H5Z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
   back: '<path d="M15 5l-7 7 7 7"/>',
-  filter: '<path d="M4 5h16l-6 8v6l-4-2v-4Z"/>'
+  filter: '<path d="M4 5h16l-6 8v6l-4-2v-4Z"/>',
+  pause: '<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
+  resume: '<path d="M7 5v14l11-7Z"/>',
+  max: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
+  mini: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
+  sort: '<path d="M7 4v16M3 16l4 4 4-4"/><path d="M14 6h7M14 11h5M14 16h3"/>'
 };
 
 export function icon(name) {

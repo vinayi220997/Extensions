@@ -473,6 +473,8 @@ async function updateBadge(tabId) {
   await chrome.action.setBadgeText({ tabId, text }).catch(() => {});
   await chrome.action.setBadgeBackgroundColor({ tabId, color: s.accent === 'custom' ? s.accentCustom : (BADGE_COLORS[s.accent] || BADGE_COLORS.teal) }).catch(() => {});
   await chrome.action.setTitle({ tabId, title: count ? `VidSnag – ${count} media found` : 'VidSnag' }).catch(() => {});
+  // Unpinned mode: the in-page indicator shows the same count.
+  if (s.sidebarMode === 'unpinned') chrome.tabs.sendMessage(tabId, { type: 'vidsnag-count', count }, { frameId: 0 }).catch(() => {});
 }
 async function refreshAllBadges() {
   const tabs = await chrome.tabs.query({});
@@ -492,7 +494,7 @@ async function startDownload(tabId, mediaId, opts = {}) {
   if (item.status === 'probing') throw new Error('Still analyzing this stream — try again in a moment.');
   if (item.status === 'error') throw new Error(item.error || 'This stream could not be read.');
   const source = await buildSource(item, state, opts);
-  return startFromSource(source, tabId, { filename: opts.filename, saveAs: opts.saveAs });
+  return startFromSource(source, tabId, { filename: opts.filename, saveAs: opts.saveAs, mediaId });
 }
 
 // Turn a detected media item + user choices into a download "source" (also stored in history/library).
@@ -581,6 +583,7 @@ async function startFromSource(source, tabId = TAB_NONE, overrides = {}) {
   const job = {
     id: `j${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
     tabId,
+    mediaId: overrides.mediaId || null,
     source,
     title: source.title,
     baseName,
@@ -618,7 +621,7 @@ async function pumpQueue() {
       // Claim queued jobs atomically ('starting') so overlapping pumps never double-start one.
       const claimed = await mutateJobs((jobs) => {
         const all = Object.values(jobs).sort((x, y) => x.createdAt - y.createdAt);
-        let activeStreams = all.filter((j) => j.engine === 'offscreen' && ['starting', 'downloading', 'finalizing'].includes(j.status)).length;
+        let activeStreams = all.filter((j) => j.engine === 'offscreen' && ['starting', 'downloading', 'paused', 'finalizing'].includes(j.status)).length;
         const out = [];
         for (const job of all.filter((j) => j.status === 'queued')) {
           if (job.engine === 'offscreen') {
@@ -772,6 +775,23 @@ async function cancelJob(id) {
   maybeCloseOffscreen();
 }
 
+// Pause / resume. Browser-managed downloads use chrome.downloads; streams pause their segment loop.
+async function pauseJob(id, resume = false) {
+  const job = (await readJobs())[id];
+  if (!job || TERMINAL.includes(job.status)) return null;
+  if (job.live) throw new Error('Live recordings can’t be paused — use Stop & save.');
+  if (job.engine === 'page') throw new Error('In-page videos can’t be paused.');
+  if (!resume && job.status !== 'downloading') throw new Error('Only running downloads can be paused.');
+  if (resume && job.status !== 'paused') return job;
+  if (job.downloadId != null) {
+    if (resume) await chrome.downloads.resume(job.downloadId); else await chrome.downloads.pause(job.downloadId);
+  } else if (job.engine === 'offscreen') {
+    await chrome.runtime.sendMessage({ target: 'offscreen', type: resume ? 'resume' : 'pause', jobId: id }).catch(() => {});
+  } else return job;
+  ensureProgressPolling();
+  return patchJob(id, { status: resume ? 'downloading' : 'paused' });
+}
+
 // Live streams: stop recording and save what has been captured so far.
 async function stopLiveJob(id) {
   await chrome.runtime.sendMessage({ target: 'offscreen', type: 'stop', jobId: id }).catch(() => {});
@@ -835,12 +855,14 @@ function ensureProgressPolling() {
 }
 async function refreshDirectProgress() {
   const jobs = await readJobs();
-  const active = Object.values(jobs).filter((j) => j.engine !== 'offscreen' && j.status === 'downloading' && j.downloadId != null);
+  const active = Object.values(jobs).filter((j) => j.engine !== 'offscreen' && ['downloading', 'paused'].includes(j.status) && j.downloadId != null);
   for (const job of active) {
     const [dl] = await chrome.downloads.search({ id: job.downloadId });
     if (!dl) continue;
     const total = dl.totalBytes > 0 ? dl.totalBytes : job.total;
-    await patchJob(job.id, { bytes: dl.bytesReceived, total, progress: total ? dl.bytesReceived / total : 0 });
+    const patch = { bytes: dl.bytesReceived, total, progress: total ? dl.bytesReceived / total : 0 };
+    if (dl.state === 'in_progress') patch.status = dl.paused ? 'paused' : 'downloading';
+    await patchJob(job.id, patch);
   }
   return active.length;
 }
@@ -872,7 +894,7 @@ function ensureOffscreen() {
 function maybeCloseOffscreen() {
   return offscreenOp(async () => {
     const jobs = Object.values(await readJobs());
-    const busy = jobs.some((j) => j.engine === 'offscreen' && ['queued', 'starting', 'downloading', 'finalizing'].includes(j.status))
+    const busy = jobs.some((j) => j.engine === 'offscreen' && ['queued', 'starting', 'downloading', 'paused', 'finalizing'].includes(j.status))
       || Date.now() < offscreenBusyUntil;
     if (!busy && (await hasOffscreen())) await chrome.offscreen.closeDocument().catch(() => {});
   });
@@ -922,11 +944,12 @@ async function onOffscreenMessage(msg) {
   }
   if (msg.type === 'progress') {
     if (job.downloadId != null) return null; // already handed to chrome.downloads
-    await patchJob(job.id, {
+    const patch = {
       progress: msg.progress, bytes: msg.bytes, total: msg.total || job.total,
-      segmentsDone: msg.segmentsDone, segmentsTotal: msg.segmentsTotal,
-      status: msg.finalizing ? 'finalizing' : 'downloading', note: msg.note || ''
-    });
+      segmentsDone: msg.segmentsDone, segmentsTotal: msg.segmentsTotal, note: msg.note || ''
+    };
+    if (job.status !== 'paused' || msg.finalizing) patch.status = msg.finalizing ? 'finalizing' : 'downloading';
+    await patchJob(job.id, patch);
   } else if (msg.type === 'failed') {
     await failJob(job.id, msg.error);
   } else if (msg.type === 'finished') {
@@ -1117,12 +1140,27 @@ function fileTitle(url) {
 }
 
 async function downloadBest(tab, output) {
+  if (!output) {
+    const s = await settings();
+    const action = (await siteRules()).actions[hostOf(tab.url)] || s.defaultAction;
+    output = action === 'audio' ? 'audio' : action === 'copy' ? 'copy' : 'auto';
+  }
   const st = await readTab(tab.id);
   const items = Object.values(st.items).filter((i) => i.status === 'ready');
   if (!items.length) { notify('Nothing to download', 'VidSnag has not detected any media on this page yet. Play the video, then try again.'); return; }
   const score = (i) => (i.kind === 'hls' || i.kind === 'dash' ? 1e12 : 0) + (i.height || 0) * 1e6 + (i.size || 0) / 1e3;
   const best = items.sort((a, b) => score(b) - score(a))[0];
-  await startDownload(tab.id, best.id, { output });
+  if (output === 'copy') {
+    const ok = await copyViaOffscreen(best.url);
+    notify(ok ? 'Link copied' : 'Copy failed', best.url);
+    return;
+  }
+  try {
+    await startDownload(tab.id, best.id, { output });
+  } catch (e) {
+    if (output !== 'audio') throw e;
+    await startDownload(tab.id, best.id, { output: 'auto' }); // no audio-only for this media
+  }
   notify('Download started', best.customTitle || best.title);
 }
 
@@ -1142,7 +1180,7 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   }
   if (command !== 'download-best') return;
   const [active] = tab ? [tab] : await chrome.tabs.query({ active: true, currentWindow: true });
-  if (active) downloadBest(active, 'auto').catch((e) => notify('Cannot download', e.message));
+  if (active) downloadBest(active, null).catch((e) => notify('Cannot download', e.message));
 });
 
 // ---------------------------------------------------------------------------
@@ -1528,6 +1566,9 @@ async function handleMessage(msg, sender) {
       await ingestReportedMedia(tabId, items, 'dom', sender);
       return null;
     }
+    case 'float-hello':
+      if (sender.tab?.id >= 0) updateBadge(sender.tab.id);
+      return null;
     case 'get-tab': {
       const st = await readTab(msg.tabId);
       return { ...st, items: Object.values(st.items).sort((a, b) => a.detectedAt - b.detectedAt) };
@@ -1641,6 +1682,26 @@ async function handleMessage(msg, sender) {
       return cancelJob(msg.jobId);
     case 'stop-live':
       return stopLiveJob(msg.jobId);
+    case 'pause':
+      return pauseJob(msg.jobId, false);
+    case 'resume':
+      return pauseJob(msg.jobId, true);
+    case 'set-media-meta':
+      // Duration/size measured by the panel for files the page didn't describe.
+      await mutateTab(msg.tabId, (st) => {
+        const it = st.items[msg.mediaId];
+        if (!it) return;
+        if (!it.duration && Number(msg.duration) > 0 && isFinite(msg.duration)) it.duration = Number(msg.duration);
+        if (!it.width && Number(msg.width) > 0) { it.width = Number(msg.width); it.height = Number(msg.height) || 0; }
+        if ((it.kind === 'file') && it.variants[0]) Object.assign(it.variants[0], variantForFile(it));
+        it.metaProbed = true;
+      });
+      return null;
+    case 'copy-media': {
+      const st = await readTab(msg.tabId);
+      const it = st.items[msg.mediaId];
+      return it ? copyViaOffscreen(it.url) : false;
+    }
     case 'get-jobs':
       await refreshDirectProgress();
       return Object.values(await readJobs()).sort((a, b) => b.createdAt - a.createdAt);

@@ -19,6 +19,7 @@ let pipWindow = null;
 // ---------------------------------------------------------------------------
 async function resolveTab() {
   if (ctx.forcedTabId) return chrome.tabs.get(ctx.forcedTabId).catch(() => null);
+  if (ctx.mode === 'float') return (await chrome.tabs.getCurrent()) || null; // the page hosting the indicator
   if (ctx.mode === 'popup' || ctx.mode === 'sidebar') {
     const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
     return t || null;
@@ -41,7 +42,7 @@ async function setTab(t) {
 }
 
 function watchTabs() {
-  if (ctx.forcedTabId || ctx.mode === 'popup') return;
+  if (ctx.forcedTabId || ctx.mode === 'popup' || ctx.mode === 'float') return;
   let myWindowId = null;
   chrome.windows.getCurrent().then((w) => { myWindowId = w.id; });
   const refresh = async () => setTab(await resolveTab());
@@ -62,6 +63,7 @@ function watchTabs() {
 // ---------------------------------------------------------------------------
 export function switchView(next) {
   if (!VIEWS[next] && next !== 'settings') next = 'media';
+  if (ctx.compact && next !== 'settings') next = 'media'; // Mini shows the media list only
   ctx.view = next;
   for (const b of document.querySelectorAll('.tabs button')) b.classList.toggle('active', b.dataset.view === next);
   for (const s of document.querySelectorAll('.view')) s.classList.toggle('active', s.id === `view-${next}`);
@@ -154,8 +156,8 @@ function panelMenu() {
     { label: 'New tab', icon: 'open', checked: ctx.mode === 'tab', disabled: ctx.mode === 'tab', onClick: () => send({ type: 'open-panel-tab', view: ctx.view }).then(() => ctx.mode === 'popup' && window.close()) },
     'sep',
     pinned
-      ? { label: 'Unpin (stop keeping on top)', icon: 'unpin', onClick: unpin }
-      : { label: 'Pin on top of other windows', icon: 'pin', onClick: pin },
+      ? { label: 'Stop keeping on top', icon: 'unpin', onClick: unpin }
+      : { label: 'Keep on top of other windows (Picture-in-Picture)', icon: 'pin', onClick: pin },
     'sep',
     { header: 'Toolbar icon opens' },
     { label: 'Popup', checked: ctx.settings.defaultPanel === 'popup', onClick: () => saveSettings({ defaultPanel: 'popup' }).then(() => toast('The toolbar icon now opens the popup')) },
@@ -180,9 +182,46 @@ async function savePage() {
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
+const MODE_PANELS = ['sidebar', 'window', 'pip'];
+let started = false;
 function applySettings(s) {
   ctx.settings = s;
   applyAppearance(s, { sizeBody: ctx.mode === 'popup' });
+  const compact = ctx.mode === 'float' || (MODE_PANELS.includes(ctx.mode) && s.sidebarMode === 'mini');
+  const changed = compact !== ctx.compact;
+  ctx.compact = compact;
+  document.body.classList.toggle('mini', compact);
+  for (const b of document.querySelectorAll('#modeSwitch button')) {
+    const on = b.dataset.mode === (s.sidebarMode === 'unpinned' ? s.lastPinnedMode : s.sidebarMode);
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', String(on));
+  }
+  if (changed && started) switchView(compact ? 'media' : ctx.view);
+}
+
+// Max / Mini / Unpin. Chrome can't resize or float the side panel itself, so Unpin closes the
+// panel and every page shows a small indicator at its edge that expands into the Mini panel on hover.
+async function setPanelMode(mode) {
+  if (mode === 'max' || mode === 'mini') {
+    await saveSettings({ sidebarMode: mode, lastPinnedMode: mode });
+    return;
+  }
+  await saveSettings({ sidebarMode: 'unpinned', lastPinnedMode: ctx.settings.sidebarMode === 'mini' ? 'mini' : 'max' });
+  toast('Unpinned — hover the VidSnag tab at the edge of the page to open it');
+  setTimeout(() => {
+    if (ctx.mode === 'pip') { try { window.parent.close(); } catch { window.close(); } }
+    else window.close(); // closes the side panel / VidSnag window
+  }, 700);
+}
+
+async function pinBack() {
+  const target = ctx.settings.lastPinnedMode || 'max';
+  try {
+    await chrome.sidePanel.open({ windowId: ctx.tab?.windowId ?? (await chrome.windows.getCurrent()).id });
+  } catch {
+    await send({ type: 'open-window' }).catch(() => {}); // side panel not available here: use the window
+  }
+  await saveSettings({ sidebarMode: target });
 }
 
 async function init() {
@@ -200,8 +239,22 @@ async function init() {
   $('btnOptions').addEventListener('click', openSettings);
   $('btnSavePage').addEventListener('click', savePage);
   for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => switchView(b.dataset.view));
+  const modeIcons = { max: 'max', mini: 'mini', unpinned: 'unpin' };
+  for (const b of document.querySelectorAll('#modeSwitch button')) {
+    b.append(icon(modeIcons[b.dataset.mode]), document.createTextNode(` ${b.dataset.mode === 'unpinned' ? 'Unpin' : b.dataset.mode === 'max' ? 'Max' : 'Mini'}`));
+    b.addEventListener('click', () => setPanelMode(b.dataset.mode));
+  }
+  $('modeSwitch').hidden = !MODE_PANELS.includes(ctx.mode);
+  $('btnPinBack').hidden = ctx.mode !== 'float';
+  $('btnPinBack').addEventListener('click', pinBack);
+  // Opening the sidebar or window means the user wants VidSnag pinned again.
+  if (MODE_PANELS.includes(ctx.mode) && ctx.settings.sidebarMode === 'unpinned') {
+    await saveSettings({ sidebarMode: ctx.settings.lastPinnedMode || 'max' });
+    applySettings(await getSettings());
+  }
 
   for (const v of Object.values(VIEWS)) v.init?.();
+  started = true;
 
   setTab(await resolveTab());
   watchTabs();

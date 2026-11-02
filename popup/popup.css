@@ -172,3 +172,64 @@ main { flex: 1; overflow-y: auto; padding: 8px 10px 10px; min-height: 0; }
   .list.grid { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); }
 }
 body[data-mode="tab"] main > .view { max-width: 1100px; margin: 0 auto; }
+
+/* Sort control */
+#mediaSort { max-width: 132px; flex: none; }
+body[data-mode="popup"] #mediaSort { max-width: 108px; }
+
+/* Max / Mini / Unpin switch (sidebar, window, PiP) */
+.mode-switch { display: flex; gap: 2px; padding: 2px; background: var(--surface-2); border-radius: 8px; margin-left: auto; margin-right: 4px; }
+.mode-switch button {
+  display: inline-flex; align-items: center; gap: 4px; height: 26px; padding: 0 7px; border: 0; border-radius: 6px;
+  background: none; color: var(--muted); cursor: pointer; font-size: .88em; font-weight: 500;
+}
+.mode-switch button svg { width: 13px; height: 13px; }
+.mode-switch button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.mode-switch button:focus-visible { outline: 2px solid var(--accent); }
+#btnPinBack { margin-left: auto; margin-right: 4px; }
+
+/* ---------- Mini (compact) layout ---------- */
+body.mini .tabs, body.mini .bottom, body.mini #banner,
+body.mini #view-media .toolbar, body.mini .brand span { display: none !important; }
+body.mini .top { padding: 6px 6px 4px 10px; }
+body.mini main { padding: 4px 6px 8px; }
+body.mini .notice { padding: 6px 8px; font-size: .86em; }
+body.mini #btnSavePage, body.mini #btnHelp { display: none; }
+@media (max-width: 300px) { body.mini .mode-switch button { font-size: 0; gap: 0; } body.mini .mode-switch button svg { width: 14px; height: 14px; } }
+
+.list.mini { display: flex; flex-direction: column; gap: 4px; }
+.mini-card {
+  display: flex; align-items: center; gap: 10px; padding: 6px 4px 6px 6px; border-radius: 10px;
+  background: var(--surface); border: 1px solid var(--border); min-width: 0;
+}
+.mini-card.blocked { opacity: .7; }
+.mini-card .icon-btn { width: 30px; height: 30px; }
+.mini-go { color: var(--accent) !important; }
+.mini-go:hover { background: var(--accent-soft) !important; }
+.mini-body { flex: 1; min-width: 0; }
+.mini-title { font-weight: 600; font-size: .95em; }
+.mini-info, .mini-progress { font-size: .84em; color: var(--muted); }
+.mini-progress { color: var(--accent); font-weight: 600; }
+
+.mini-frame { position: relative; width: 48px; height: 48px; flex: none; }
+.mini-thumb { position: absolute !important; inset: 5px; width: auto !important; aspect-ratio: auto !important; border-radius: 50%; }
+.mini-thumb svg { width: 16px !important; height: 16px !important; }
+.mini-frame.st-paused .mini-thumb { border-radius: 5px; }
+.ring { position: absolute; inset: 0; width: 48px; height: 48px; transform: rotate(-90deg); pointer-events: none; }
+.ring.paused { transform: none; }
+.ring .track { fill: none; stroke: var(--surface-3); stroke-width: 3.5; }
+.ring .bar { fill: none; stroke: var(--accent); stroke-width: 3.5; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; transition: stroke-dashoffset .35s; }
+.ring.paused .bar { stroke: var(--warn); stroke-linecap: square; }
+.ring .glyph { fill: #fff; stroke: rgba(0, 0, 0, .35); stroke-width: .6; }
+.mini-frame.indeterminate .ring .bar { stroke-dasharray: 25 75; stroke-dashoffset: 0; animation: spin 1s linear infinite; transform-origin: 24px 24px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.mini-badge {
+  position: absolute; right: -1px; bottom: -1px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: #fff; border: 2px solid var(--surface);
+}
+.mini-badge.ok { background: var(--ok); }
+.mini-badge.bad { background: var(--danger); }
+body.mini .empty { padding: 16px 8px; }
+body.mini .empty-art { width: 40px; height: 40px; border-radius: 12px; }
+body.mini .empty-art::after { inset: 10px; }
+body[data-mode="float"] { background: var(--bg); }

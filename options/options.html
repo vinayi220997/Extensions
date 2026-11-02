@@ -140,6 +140,10 @@
             <label><input type="radio" name="textSize" value="L"><span>Large</span></label>
           </div>
         </div>
+        <label class="row">
+          <span><b>Sort media by</b><small>Also available on the main screen.</small></span>
+          <select name="sortBy" id="sortBySelect"></select>
+        </label>
         <div class="row">
           <span><b>Media layout</b></span>
           <div class="seg" role="radiogroup" aria-label="Media layout">
@@ -158,6 +162,22 @@
 
       <section id="s-behaviour">
         <h2>Behaviour</h2>
+        <div class="row">
+          <span><b>Default action</b><small>What the main button on every video does, on all websites. Per-site choices (⋯ › “only on this site”) override it.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Default action">
+            <label><input type="radio" name="defaultAction" value="download"><span>Download</span></label>
+            <label><input type="radio" name="defaultAction" value="audio"><span>Download audio</span></label>
+            <label><input type="radio" name="defaultAction" value="copy"><span>Copy link</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Sidebar mode</b><small>Max shows everything, Mini only the essentials. Unpin hides VidSnag to a small tab at the edge of each page that opens on hover.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Sidebar mode">
+            <label><input type="radio" name="sidebarMode" value="max"><span>Max</span></label>
+            <label><input type="radio" name="sidebarMode" value="mini"><span>Mini</span></label>
+            <label><input type="radio" name="sidebarMode" value="unpinned"><span>Unpinned</span></label>
+          </div>
+        </div>
         <div class="row">
           <span><b>Open settings</b><small>From the gear button in VidSnag.</small></span>
           <div class="seg" role="radiogroup" aria-label="Open settings">

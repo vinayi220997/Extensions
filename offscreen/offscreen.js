@@ -16,6 +16,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const j = active.get(msg.jobId);
     if (j) { j.cancelled = true; j.controller.abort(); }
     sendResponse({ ok: true });
+  } else if (msg.type === 'pause' || msg.type === 'resume') {
+    const j = active.get(msg.jobId);
+    if (j) j.paused = msg.type === 'pause';
+    sendResponse({ ok: true });
   } else if (msg.type === 'stop') {
     const j = active.get(msg.jobId);
     if (j) j.stopRequested = true;
@@ -175,10 +179,14 @@ function orderedFeeder(sink) {
   };
 }
 
-async function runPool(count, concurrency, worker, signal) {
+const waitWhilePaused = async (state, signal) => {
+  while (state && state.paused && !signal.aborted) await new Promise((r) => setTimeout(r, 250));
+};
+async function runPool(count, concurrency, worker, signal, state = null) {
   let cursor = 0;
   const runners = Array.from({ length: Math.min(concurrency, count) }, async () => {
     while (cursor < count) {
+      await waitWhilePaused(state, signal);
       if (signal.aborted) throw new Cancelled('cancelled');
       const i = cursor++;
       await worker(i);
@@ -237,7 +245,7 @@ async function decryptSegment(data, key, sequence, getKey) {
 //   source.audio  { url } (HLS alternate audio) or { repId } (DASH) → merged when output is 'auto'
 // ---------------------------------------------------------------------------
 async function runJob(job, options) {
-  const state = { controller: new AbortController(), stopRequested: false, cancelled: false };
+  const state = { controller: new AbortController(), stopRequested: false, cancelled: false, paused: false };
   active.set(job.id, state);
   try {
     const src = job.source;
@@ -329,7 +337,7 @@ async function hlsTrack(job, url0, mode, options, state, report) {
     feed(i, data ? { data, init } : null);
     done++;
     report({ progress: done / segs.length, segmentsDone: done, segmentsTotal: segs.length, bytes: sink.size });
-  }, signal);
+  }, signal, state);
 
   const res = sink.finish();
   report.done?.(sink.size);
@@ -429,6 +437,7 @@ async function dashTrack(job, rep, options, state, report) {
     const reader = res.body.getReader();
     let got = 0;
     for (;;) {
+      await waitWhilePaused(state, signal);
       const { done, value } = await reader.read();
       if (done) break;
       sink.push(value);
@@ -449,7 +458,7 @@ async function dashTrack(job, rep, options, state, report) {
       feed(i, { data });
       done++;
       report({ progress: done / segments.length, segmentsDone: done, segmentsTotal: segments.length, bytes: sink.size });
-    }, signal);
+    }, signal, state);
   }
   const res = sink.finish();
   report.done?.(sink.size);
@@ -516,6 +525,7 @@ async function runFileAudio(job, state) {
   const chunks = [];
   let got = 0;
   for (;;) {
+    await waitWhilePaused(state, signal);
     const { done, value } = await reader.read();
     if (done) break;
     chunks.push(value);

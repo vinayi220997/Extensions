@@ -258,7 +258,7 @@ await step('main-screen', async () => {
   // Card menu contains every required action
   const card = p.locator('#mediaList .card', { hasText: 'JW Big Buck' }).first();
   const labels = await (await cardMenu(p, card)).allInnerTexts();
-  const need = ['Download', 'Download as', 'Download audio', 'Always download audio', 'Copy link', 'Always copy link', 'Rename', 'Smart naming', 'Save to list', 'View details'];
+  const need = ['Download', 'Download as', 'Download audio', 'Always download audio — all websites', 'Always download audio — only on', 'Copy link', 'Always copy link — all websites', 'Always copy link — only on', 'Rename', 'Smart naming', 'Save to list', 'View details'];
   check('Card menu has all actions', need.every((n) => labels.some((l) => l.includes(n))), labels.join(' | '));
   await p.screenshot({ path: path.join(OUT, 'card-menu.png') });
 
@@ -282,7 +282,7 @@ await step('main-screen', async () => {
 
   // Copy + Always copy
   await cardMenu(p, renamed);
-  await menuClick(p, 'Always copy link');
+  await menuClick(p, 'Always copy link — only on');
   await p.waitForTimeout(400);
   const btn = await p.locator('#mediaList .card .btn.primary').first().innerText();
   const rules = await sw.evaluate(async () => (await chrome.storage.local.get('siteRules')).siteRules);
@@ -293,7 +293,7 @@ await step('main-screen', async () => {
   check('Copy link copies the media URL', clip.startsWith(BASE), clip);
   // Always audio
   await cardMenu(p, p.locator('#mediaList .card', { hasText: '720p' }).filter({ hasText: 'MP4' }).first());
-  await menuClick(p, 'Always download audio');
+  await menuClick(p, 'Always download audio — only on');
   await p.waitForTimeout(400);
   const big = p.locator('#mediaList .card').filter({ hasText: 'big.mp4' }).first();
   check('Always download audio: main button becomes “Audio”', /Audio/.test(await big.locator('.btn.primary').innerText()));
@@ -508,7 +508,7 @@ await step('settings-appearance-panels', async () => {
   const pipSupported = await sidebar.evaluate(() => 'documentPictureInPicture' in window);
   check('Pin on top: Document Picture-in-Picture API available in panel pages', true, pipSupported ? 'available' : 'not available in headless — pin falls back with a message');
   const menuLabels = await (async () => { await sidebar.click('#btnPanel'); await sidebar.waitForTimeout(150); return sidebar.locator('.menu button').allInnerTexts(); })();
-  check('Panel menu: popup / sidebar / window / tab / pin', ['Sidebar', 'Separate window', 'New tab', 'Pin on top'].every((x) => menuLabels.some((l) => l.includes(x))), menuLabels.join(' | '));
+  check('Panel menu: popup / sidebar / window / tab / pin', ['Sidebar', 'Separate window', 'New tab', 'Keep on top'].every((x) => menuLabels.some((l) => l.includes(x))), menuLabels.join(' | '));
   await sidebar.close();
   await setSettings({ theme: 'system', previewMode: 'image', windowSize: 'M', textSize: 'M', settingsOpenIn: 'tab', accent: 'teal', mergeAudio: true });
   await p.close(); await page.close(); await o.close();

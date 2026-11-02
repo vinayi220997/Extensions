@@ -13,6 +13,12 @@
       <img src="../icons/icon32.png" alt="" width="22" height="22">
       <span>VidSnag</span>
     </div>
+    <div class="mode-switch" id="modeSwitch" role="group" aria-label="Panel mode" hidden>
+      <button data-mode="max" title="Max — full interface" aria-label="Max mode"></button>
+      <button data-mode="mini" title="Mini — compact" aria-label="Mini mode"></button>
+      <button data-mode="unpinned" title="Unpin — hide to a small indicator at the page edge" aria-label="Unpin"></button>
+    </div>
+    <button class="btn small primary" id="btnPinBack" hidden>Pin</button>
     <div class="top-actions">
       <button class="icon-btn" id="btnSavePage" title="Save this page to Saved links" aria-label="Save this page"></button>
       <button class="icon-btn" id="btnPanel" title="Sidebar, window or pin" aria-label="Panel options" aria-haspopup="menu"></button>
@@ -36,6 +42,7 @@
         <div class="chips" id="mediaFilters" role="group" aria-label="Filter media"></div>
         <div class="toolbar-row">
           <input type="search" id="mediaSearch" placeholder="Search media" aria-label="Search media">
+          <select id="mediaSort" aria-label="Sort by" title="Sort by"></select>
           <button class="icon-btn" id="btnRefreshList" title="Refresh list (rescan page)" aria-label="Refresh list"></button>
           <button class="icon-btn" id="btnViewMode" title="Grid view" aria-label="Toggle grid view"></button>
           <button class="icon-btn" id="btnMediaMore" title="More" aria-label="More actions" aria-haspopup="menu"></button>

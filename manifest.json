@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "VidSnag \u2013 Video Downloader",
+  "name": "VidSnag – Video Downloader",
   "short_name": "VidSnag",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Detects videos and audio on any page (MP4, WebM, HLS, DASH, players, blob videos) and downloads them in the quality and format you choose.",
   "minimum_chrome_version": "120",
   "permissions": [
@@ -49,6 +49,17 @@
       "run_at": "document_idle",
       "all_frames": true,
       "world": "MAIN"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-float.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
     }
   ],
   "action": {
@@ -90,5 +101,17 @@
   ],
   "side_panel": {
     "default_path": "popup/popup.html?mode=sidebar"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup/popup.html",
+        "icons/icon32.png"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ]
 }

@@ -1,4 +1,4 @@
-import { getSettings, saveSettings, resetSettings, validate, getSiteRules, saveSiteRules, normalizeSiteRules } from '../lib/settings.js';
+import { getSettings, saveSettings, resetSettings, validate, getSiteRules, saveSiteRules, normalizeSiteRules, SORT_OPTIONS } from '../lib/settings.js';
 import { buildFilename, sanitizeFolder } from '../lib/util.js';
 import { parseAddonFile, getAddons, saveAddons, normalizeAddon, SAMPLE_RULE_ADDON, SAMPLE_SCRIPT_ADDON } from '../lib/addons.js';
 import { applyAppearance, ACCENTS } from '../ui/appearance.js';
@@ -8,6 +8,7 @@ import { formDialog, confirmDialog } from '../ui/dialog.js';
 const form = document.getElementById('form');
 const $ = (id) => document.getElementById(id);
 const embed = new URLSearchParams(location.search).get('embed') === '1';
+for (const [v, l] of SORT_OPTIONS) document.getElementById('sortBySelect').append(new Option(l, v));
 if (embed) document.body.classList.add('embed');
 let saveTimer = null;
 let current = null;
@@ -58,7 +59,9 @@ function preview() {
 }
 
 async function save(patch = {}) {
-  const next = await saveSettings({ ...read(), ...patch });
+  const values = { ...read(), ...patch };
+  if (values.sidebarMode && values.sidebarMode !== 'unpinned') values.lastPinnedMode = values.sidebarMode;
+  const next = await saveSettings(values);
   current = next;
   flash('Saved ✓');
   document.querySelector('[name="historyDays"]').disabled = !next.historyEnabled;

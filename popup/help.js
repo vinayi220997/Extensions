@@ -33,12 +33,16 @@ const SECTIONS = [
       [b('Quality'), ': choose it in the dropdown on each card. The default comes from Settings › Default resolution.'],
       [b('Download as…'), ' (⋯ menu): pick quality, format (MP4, original .ts, video only, audio only), file name and folder.'],
       [b('Download audio'), ': saves an .m4a. Works for MP4 files, HLS and DASH streams.'],
-      [b('Always download audio / Always copy link'), ': makes that the main button for the whole website.'],
+      [b('Always download audio / Always copy link — all websites'), ': makes that the main button everywhere (also in Settings › Behaviour › Default action). Choose it again to switch back to Download.'],
+      [b('… — only on this site'), ': the same for one website; it overrides the global default there.'],
+      [b('Pause / Resume'), ': in the Downloads tab, a card’s ⋯ menu, or the Mini view. Live recordings use Stop & save instead.'],
       [b('Rename'), ' changes the title used for the file name. ', b('Smart naming'), ' sets a pattern (and optionally a title picked from the page) for every download from a site.'])
   ]],
   ['Main screen: filters, views, refresh', false, () => [
     ul(
       [b('Filters'), ': All, Video, Audio, Streams (HLS/DASH) and Files. The search box filters by title or address.'],
+      [b('Sort by'), ': date added, name, duration, file size, quality, website or download status. Sorting works together with filters and search.'],
+      ['Every card shows the duration (', h('code', { text: '–:––' }), ' while unknown), the size — ', h('code', { text: '~' }), ' means estimated from the stream bitrate — plus resolution, codecs and download status.'],
       [b('List / Grid'), ': the grid button switches card layouts; your choice is remembered.'],
       [b('Refresh list'), ' rescans the page; ', b('Refresh page'), ' reloads it; ', b('Clear list'), ' empties the list for this tab.'])
   ]],
@@ -59,6 +63,7 @@ const SECTIONS = [
   ]],
   ['Sidebar, window and pinning', false, () => [
     ul(
+      [b('Max / Mini / Unpin'), ' (top of the sidebar or window): Max shows everything; Mini only the essentials — thumbnail with a round progress ring (square while paused), size, duration and a download button; Unpin closes the sidebar and leaves a small VidSnag tab at the right edge of every page. Hover it to open the Mini panel, move away to close it, drag it up or down, and press ', b('Pin'), ' to bring the sidebar back. VidSnag remembers your last mode.'],
       ['The panel button (next to Help) opens VidSnag as a ', b('popup'), ', in the ', b('sidebar'), ', a ', b('separate window'), ' or a ', b('tab'), '.'],
       [b('Pin on top'), ' keeps a small VidSnag window above other windows (Chrome Picture-in-Picture). Use it from the window or sidebar view; click again to unpin.'],
       ['Settings › Appearance › Default panel decides what the toolbar icon opens.'])
