@@ -37,14 +37,17 @@
 - Actions: Download, Download as…, Audio only, Copy URL, and per-site default action.
 - Messaging: `mut-settings`, `do_download`, `abort_download`, `retry_download` and others. The UI re-renders on `storage.onChanged`.
 
-## What VidSnag kept, simplified or dropped
-| VDH | VidSnag |
+## What VidSnag kept, simplified or dropped (v2.0)
+| VDH | VidSnag 2.0 |
 |---|---|
-| webRequest sniffing + manifest probing | Kept (`onSendHeaders` + `onResponseStarted`, HLS/DASH parsers) |
+| webRequest sniffing + manifest probing | Kept (`onSendHeaders` + `onResponseStarted`, HLS/DASH parsers) plus rule-addon URL patterns |
 | DNR header replay | Kept, with per-job rules for every CDN host and cleanup on start |
 | Offscreen document + worker | Offscreen document only (no worker needed without WASM) |
-| libav.js remux / merge A+V | mux.js TS→MP4 (≈118 KB). Separate A/V tracks are saved separately, with a warning |
-| Site-specific extractors | Generic DOM scanner instead (plus og:video) |
-| Custom elements UI | Plain DOM-builder UI, three tabs, dark mode |
-| Smart naming (TOML rules) | File-name template with tokens + subfolder |
+| libav.js remux / merge A+V (≈5 MB WASM) | Own dependency-free fMP4 merger + MP4 audio extractor (`lib/mp4.js`) and mux.js TS→MP4 (≈118 KB). Separate audio/video tracks are merged; audio-only gives `.m4a` (no MP3 transcode) |
+| Site-specific extractors (MAIN/ISOLATED pairs) | Generic detectors (HTML5 + shadow DOM, links/data-attrs, og/JSON-LD, blob) + a generic player probe in the MAIN world + user addons (JSON rules, `chrome.userScripts` scripts) |
+| Popup + sidebar (`dockmode`) | Popup, side panel, separate window, tab, and Document-PiP "pin on top"; default panel setting |
+| Custom elements UI | Plain DOM-builder UI: filters, list/grid, card menus, dialogs, Saved links, Help |
+| Smart naming (TOML rules) | Per-site naming rule: template + CSS selector, tested live |
+| `default_action_per_hostname` | "Always download audio / Always copy link" per site |
+| History (`history_days`) | History with retention days + Saved links library with categories, link check and refresh |
 | Premium/TOS gating, remote config | Not included |

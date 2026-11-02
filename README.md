@@ -1,78 +1,130 @@
-# VidSnag – Video Downloader (Chrome, Manifest V3)
+# VidSnag 2.0 – Video Downloader (Chrome, Manifest V3)
 
-VidSnag finds the videos and audio on the page you're watching and saves them in the quality you pick. It's a from-scratch rebuild of the core ideas behind Video DownloadHelper, written in plain JavaScript with no build step.
-
-## Features
-
-| Area | What it does |
-|---|---|
-| **Popup** | Lists every detected media for the current tab, with type chips (MP4 / WEBM / HLS / DASH / LIVE / AES / DRM), resolution, duration and size. Each entry has a quality picker, a one-click **Download** button, copy-link and remove. **Downloads** tab: live progress, Cancel, *Stop & save* for live streams, Open / Show in folder, Retry. **History** tab: searchable, with open, re-download and delete. |
-| **Service worker** | Sniffs network traffic (`webRequest`), classifies responses by MIME type, extension and size, and skips segment files. It parses HLS master playlists and DASH manifests into qualities, keeps per-tab state in `storage.session`, shows a badge count, runs a download queue (max 3 streams in parallel) and tracks state (queued → starting → downloading → finalizing → done / error / cancelled). |
-| **Content script** | Scans `<video>`, `<audio>`, `<source>`, `<embed>`/`<object>` and `og:video` tags. A `MutationObserver` and media events catch players that load late. It reads the real resolution and duration, and picks up a poster or og:image as the thumbnail. |
-| **Stream downloader** | Runs in an offscreen document. It fetches segments in parallel with retries and timeouts, decrypts AES-128 HLS (WebCrypto) and converts MPEG-TS to MP4 with mux.js. It handles fMP4 HLS (`EXT-X-MAP`), byte ranges and DASH SegmentTemplate/SegmentTimeline/SegmentList. Live HLS can be recorded until you press *Stop & save*. |
-| **Protected sources** | Temporary `declarativeNetRequest` session rules give the extension's own requests the page's `Referer`/`Origin`, including segments served from other CDN hosts. The rules are removed when the job ends. |
-| **Settings** (`storage.sync`) | Default resolution, preferred format (MP4/WebM), HLS output (MP4 or original .ts), file-name template (`{title} {res} {host} {date} {time}`), subfolder, Save-As prompt, parallel segments, minimum file size, DOM scanning, badge, context menu, notifications, and history on/off with retention days. |
-| **History** (`storage.local`) | Records finished and failed downloads (up to 500), pruned after *N* days. |
-| **Extras** | A right-click menu on videos, audio and media links. **Alt+Shift+D** downloads the best media on the tab. Desktop notifications. Dark mode. |
+VidSnag finds the videos and audio on the page you're watching and saves them in the quality and format you choose. It's a from-scratch rebuild of the core ideas behind Video DownloadHelper, written in plain JavaScript with no build step.
 
 ## Install in Chrome (unpacked)
 
 1. Unzip `vidsnag-extension.zip` to a folder you will keep, for example `Documents\VidSnag`. Chrome loads the extension from that folder, so don't delete it.
-2. Open **chrome://extensions**.
-3. Turn on **Developer mode** (top-right toggle).
+2. Open **chrome://extensions** and turn on **Developer mode** (top right).
+3. If you had version 1 loaded, click **Remove** on the old VidSnag card first, or use the ↻ reload button if you unzipped over the same folder.
 4. Click **Load unpacked** and select the folder that contains `manifest.json`.
 5. Pin VidSnag from the puzzle-piece menu so the icon and its badge count stay visible.
-6. Optional: right-click the icon and choose **Options** to set your default resolution, file names and folder.
+6. Optional, for custom script addons only: on VidSnag's card click **Details** and turn on **Allow User Scripts**.
 
-To update after editing the code, click the ↻ reload button on VidSnag's card in chrome://extensions. Requires Chrome 116 or newer. The same folder also loads in Edge (edge://extensions) and Brave.
+Requires Chrome 120 or newer. The same folder also loads in Edge and Brave.
+
+## What's new in 2.0
+
+| Area | Features |
+|---|---|
+| **Panels** | Open VidSnag as a **popup**, in the **sidebar**, in a **separate window** or in a **tab**. **Pin on top** keeps it above other windows (Chrome Picture-in-Picture); click again to unpin. You choose whether the toolbar icon opens the popup or the sidebar. |
+| **Main screen** | Filters (All / Video / Audio / Streams / Files) with counts, search, **List** and **Grid** views, **Refresh list**, **Refresh page** and **Clear list**. Cards show thumbnails and durations. Notices appear for DRM-protected and streaming-player pages. |
+| **Card actions** | Download, Download as… (quality, format, file name, folder), Download audio, Always download audio on this site, Copy link, Always copy link on this site, Rename, Smart naming, Save to list, View details, Remove. |
+| **Downloads** | **Audio only** (`.m4a`) from MP4 files, HLS and DASH. **Separate audio and video tracks are merged into one MP4** (DASH, and HLS with alternate audio), with no re-encoding. In-page (blob) videos can be saved. Formats: MP4, original `.ts`, video only, audio only. |
+| **Detection** | HTML5 video and audio, including inside web components (shadow DOM). Also: media links and `data-*` attributes, `og:video`, JSON-LD `VideoObject`, `<link rel=preload>`, embedded players in iframes, and player APIs (JW Player, Video.js, Flowplayer, hls.js, dash.js, Shaka, Clappr). Network detection covers MP4, WebM, HLS, DASH and more. Pages that change without reloading and videos loaded later (scroll, clicks) are caught too. |
+| **Saved links** | Separate **Videos** and **Pages** lists, organised in **categories** you can create, rename, recolour and delete. Each item can be opened, downloaded, copied, edited or moved. **Check link** shows whether an address still works. **Refresh link** reloads the video's page in the background, finds the same video and replaces the expired address. |
+| **Settings** | A new **Appearance** section: video preview (icon / image / short video), theme (light / dark / system), accent colour plus a custom colour, window size S/M/L, text size, list or grid layout, and default panel. Settings can open **in the current window** or **in a new tab**. **Site rules** list your per-site choices. **Backup & restore** exports and imports settings, site rules, addons, saved links and history, with merge or replace. |
+| **Addons** | **Rule addons** (`.json`): URL patterns and CSS selectors for sites VidSnag doesn't know yet. **Script addons** (`.js`): your own detection code, which calls `VidSnag.report([...])`. Upload, enable/disable, export or delete them. Samples of both are in Settings. |
+| **Right-click menu** | On a video: download it, download its audio, copy its link, save it. On a link: download linked media, save the link. On a page: download the best media or its audio, save the page, rescan, open the sidebar or window, open saved links. On the toolbar icon: sidebar, window, saved links, history, help, settings. |
+| **Help** | A Help view inside the panel covers every feature, what each label means, and step-by-step troubleshooting. |
+
+Everything from 1.0 still works the same way. This includes AES-128 HLS, fMP4, live recording with *Stop & save*, Referer-protected and cross-CDN streams, the download queue, history and the Alt+Shift+D shortcut.
 
 ## Using it
 
-- Open a page with a video and **press play**. Streaming players load the stream only when playback starts, so VidSnag can't see it before that.
-- The badge shows how many media were found. Open the popup, pick a quality and click **Download**.
-- Files go to `Downloads/VidSnag/` by default.
-- Live streams: download starts recording. Open the **Downloads** tab and press **Stop & save**.
-- If nothing appears, click **Scan page again**, reload the page and play the video, or lower *Ignore files smaller than* in Options.
+- Open a page with a video and **press play**. Streaming players load their stream only after playback starts.
+- The badge shows how many media were found. Pick a quality and click **Download**, or use **⋯** for all other actions.
+- Files go to `Downloads/VidSnag/` by default. You can change this in Settings › Saving files.
+- Live streams: Download starts recording. Open the **Downloads** tab and press **Stop & save**.
+- Shortcuts: **Alt+Shift+V** opens VidSnag and **Alt+Shift+D** downloads the best media. You can change both at `chrome://extensions/shortcuts`.
+
+## Addon formats
+
+**Rule addon (.json)**
+
+```json
+{
+  "type": "vidsnag-addon",
+  "name": "My site",
+  "version": "1.0",
+  "matches": ["*://*.example.com/*"],
+  "detect": {
+    "networkUrlPatterns": ["/api/stream/\\d+/play$"],
+    "selectors": [{ "selector": "div.player", "attribute": "data-src", "kind": "hls" }],
+    "titleSelector": "h1.title"
+  }
+}
+```
+
+**Script addon (.js)**
+
+The script runs in Chrome's isolated *user-script* world and needs "Allow User Scripts" turned on.
+
+```js
+// ==VidSnagScript==
+// @name    My site
+// @match   *://*.example.com/*
+// ==/VidSnagScript==
+const find = () => VidSnag.report([{ url: document.querySelector('[data-src]')?.dataset.src, title: document.title }]);
+find();
+VidSnag.onRescan(find);
+```
 
 ## Project layout
 
 ```
-manifest.json           MV3 manifest (permissions, content script, popup, options, command)
-background.js           service worker: detection, manifest probing, queue, history, menus
-content.js              DOM scanner for <video>/<audio>/<source>/og:video
-offscreen/              HLS/DASH segment downloader, AES-128, TS→MP4 (mux.js)
-popup/                  popup UI (Media / Downloads / History)
-options/                settings page
-lib/util.js             classification, file names, formatting
-lib/settings.js         defaults, validation, quality picking
-lib/hls.js, lib/dash.js manifest parsers (the DASH one has its own XML reader; service workers have no DOMParser)
-lib/vendor/mux.min.js   mux.js 7.1.1 (Apache-2.0) for MPEG-TS → MP4
-ui/                     shared theme + DOM helpers
-docs/VDH-analysis.md    REA findings on Video DownloadHelper's architecture
-tests/                  local test site + Playwright end-to-end suite
+manifest.json            MV3 manifest (permissions, side panel, content scripts, commands)
+background.js            service worker: detection, probing, queue, library, menus, panels, addons
+content.js               detectors (HTML5/shadow DOM, links, metadata/JSON-LD, blob, addon rules, notices)
+content-main.js          player probe in the page's own JS world (JW Player, Video.js, …)
+offscreen/               stream downloader: HLS/DASH, AES-128, TS→MP4, audio-only, A/V merge, MP4 audio
+popup/                   panel app (popup / sidebar / window / PiP / tab):
+  app.js ctx.js            shell, modes, tab tracking, pin, settings opening
+  media.js                 main screen, filters, list/grid, card menu + dialogs
+  jobs.js history.js       downloads + history
+  library.js help.js       saved links + categories, help
+options/                 settings page (also embeddable in the panel)
+lib/                     util, settings, hls, dash, mp4 (merge + audio extraction), addons
+lib/vendor/mux.min.js    mux.js 7.1.1 (Apache-2.0) for MPEG-TS → MP4
+ui/                      theme, appearance, DOM helpers, menus, dialogs
+docs/VDH-analysis.md     REA findings on Video DownloadHelper's architecture
+tests/                   local test site + two Playwright end-to-end suites
 ```
 
 ## Tests
 
-`tests/` contains a small Node test server (with Range requests, a Referer-protected folder and a simulated live HLS stream), test pages, and a Playwright suite that loads the extension in Chromium.
-
 ```bash
 cd tests
-./make-fixtures.sh            # needs ffmpeg + openssl; generates MP4/WebM/HLS/AES/fMP4/DASH media
+./make-fixtures.sh            # needs ffmpeg + openssl
 node server.js &              # http://localhost:8765
 npm i playwright && npx playwright install chromium
-node test.mjs                 # 41 checks; prints PASS/FAIL and verifies every file with ffprobe
+node test.mjs                 # 41 checks — the original 1.0 behaviour
+node test2.mjs                # 81 checks — every 2.0 feature
 ```
 
-The last run passed 41/41: detection (DOM and network), size filtering, badge, popup rendering, direct MP4, HLS with quality selection, AES-128, fMP4, DASH video and audio, Referer-protected and cross-host streams, live record → stop, cancel, queue concurrency, history and search, settings (resolution, template, subfolder, history off), and navigation reset.
+Both suites load the extension in Chromium and verify every saved file with ffprobe/ffmpeg. The last run passed **41/41** and **81/81**.
+
+The 2.0 suite covers:
+- detection
+- blob, streaming-player (MSE) and DRM pages
+- audio extraction and A/V merging
+- every card action and dialog, filters and grid, per-site rules and smart naming
+- the right-click menu
+- saved links with categories, link check, and refresh (both with the page closed and with it open on an old address)
+- appearance, panels, sidebar, window and pin
+- export and import
+- rule and script addons
+- a fresh install
 
 ## Limitations (by design)
 
-- **DRM** (Widevine/PlayReady/FairPlay, SAMPLE-AES) is detected and flagged, never downloaded.
-- **Separate audio/video tracks** (most DASH, some HLS) can't be merged into one file without bundling an ffmpeg build. VidSnag warns you and lets you save the audio track separately. Video DownloadHelper ships libav.js (≈5 MB WASM) for this.
-- **YouTube** streams are not offered. They arrive as range-chunked fragments from googlevideo.com, and downloading from YouTube is against its Terms of Service.
-- HLS streams with discontinuities (e.g. stitched-in ads) can get wrong timestamps when converted to MP4. If a file plays oddly, set *HLS stream output* to *Original (.ts)*.
-- Live DASH and multi-period DASH (ad breaks) are rejected with a clear message.
-- Streams are assembled in memory (as Blobs) before saving, so very long videos need enough RAM and disk space.
+- **DRM** (Widevine/PlayReady/FairPlay, SAMPLE-AES) is detected and shown with a clear message. VidSnag never bypasses copy protection.
+- **Streaming players (MSE)** can't be read back from the page. VidSnag captures the underlying HLS/DASH stream from the network instead and tells you when it can't.
+- **YouTube** is not supported: its streams are deliberately ignored.
+- Audio-only download works for MP4/MOV/M4V files, HLS and DASH. WebM files have to be downloaded whole.
+- Live DASH and multi-period DASH (for example with ad breaks) are rejected with a message. Some sites stitch ads into HLS, which can leave wrong timestamps after MP4 conversion; use *HLS output › Original (.ts)* for those.
+- Streams are assembled in memory, and merging needs roughly three times the file size in free RAM. Very long 4K downloads may need the "video only" format.
+- **Refresh link** works when the page loads its video without a click. Otherwise, open the page, play the video and save it again.
+- **Pin on top** needs Chrome's Document Picture-in-Picture, so the popup opens a window first.
 
 Only download content you have the right to save.
