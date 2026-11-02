@@ -4,6 +4,7 @@ Each zip is the ready-to-install extension for that version (tests left out). To
 
 | Zip | Version | Highlights |
 |---|---|---|
+| `vidpull-v3.1.2-extension.zip` | 3.1.2 | Websites' own blocked requests (for example ad files stopped by the site's security policy) no longer show up as VidPull errors |
 | `vidpull-v3.1.1-extension.zip` | 3.1.1 | Fixes the line-218 warning in the offline-licence check, the replay of early AJAX finds, and video size on DRM files |
 | `vidpull-v3.1.0-extension.zip` | 3.1.0 | DRM detection and reporting (DASH, HLS, EME, encrypted MP4); AJAX/JSON detection; more formats; MP4/HLS/DASH/Other/Audio/DRM filters |
 | `vidpull-v3.0.0-extension.zip` | 3.0.0 | Renamed to VidPull with orange branding; one sidebar at a time; Close button in Mini; icons follow the theme colour; app-shell pages pushed aside |
