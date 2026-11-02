@@ -145,7 +145,7 @@ async function renderAddons() {
   const box = $('userScriptsStatus');
   if (scripts.length && !st.available) {
     box.hidden = false;
-    const openBtn = h('button', { type: 'button', class: 'btn small', text: 'Open VidSnag’s extension page' });
+    const openBtn = h('button', { type: 'button', class: 'btn small', text: 'Open VidPull’s extension page' });
     openBtn.addEventListener('click', () => chrome.tabs.create({ url: `chrome://extensions/?id=${chrome.runtime.id}` }));
     const grant = h('button', { type: 'button', class: 'btn small', text: 'Grant permission' });
     grant.addEventListener('click', async () => { await requestUserScripts(); renderAddons(); });
@@ -154,8 +154,8 @@ async function renderAddons() {
     box.replaceChildren(
       h('b', { text: 'Script addons are installed but not running yet.' }),
       h('ol', {},
-        st.reason === 'permission' ? h('li', {}, 'Allow VidSnag to run user scripts: ', grant) : null,
-        h('li', {}, 'On VidSnag’s extension page turn on ', h('b', { text: 'Allow User Scripts' }), ' (older Chrome: turn on Developer mode). ', openBtn),
+        st.reason === 'permission' ? h('li', {}, 'Allow VidPull to run user scripts: ', grant) : null,
+        h('li', {}, 'On VidPull’s extension page turn on ', h('b', { text: 'Allow User Scripts' }), ' (older Chrome: turn on Developer mode). ', openBtn),
         h('li', {}, 'Come back and press ', recheck)));
   } else box.hidden = true;
 
@@ -171,7 +171,7 @@ async function renderAddons() {
     const exp = h('button', { type: 'button', class: 'btn small', text: 'Export' });
     exp.addEventListener('click', () => {
       if (a.kind === 'script') downloadText(`${slug(a.name)}.js`, a.code, 'text/javascript');
-      else downloadText(`${slug(a.name)}.json`, JSON.stringify({ type: 'vidsnag-addon', name: a.name, version: a.version, description: a.description, matches: a.matches, detect: a.detect }, null, 2));
+      else downloadText(`${slug(a.name)}.json`, JSON.stringify({ type: 'vidpull-addon', name: a.name, version: a.version, description: a.description, matches: a.matches, detect: a.detect }, null, 2));
     });
     const del = h('button', { type: 'button', class: 'btn small danger', text: 'Delete' });
     del.addEventListener('click', async () => {
@@ -235,8 +235,8 @@ $('addonFile').addEventListener('change', async (e) => {
   flash(`${added} addon${added === 1 ? '' : 's'} installed`);
   renderAddons();
 });
-$('sampleRule').addEventListener('click', () => downloadText('vidsnag-sample-rules.json', JSON.stringify(SAMPLE_RULE_ADDON, null, 2)));
-$('sampleScript').addEventListener('click', () => downloadText('vidsnag-sample-script.js', SAMPLE_SCRIPT_ADDON, 'text/javascript'));
+$('sampleRule').addEventListener('click', () => downloadText('vidpull-sample-rules.json', JSON.stringify(SAMPLE_RULE_ADDON, null, 2)));
+$('sampleScript').addEventListener('click', () => downloadText('vidpull-sample-script.js', SAMPLE_SCRIPT_ADDON, 'text/javascript'));
 
 // ---------------------------------------------------------------------------
 // History
@@ -258,7 +258,7 @@ $('exportBtn').addEventListener('click', async () => {
   const parts = new Set([...document.querySelectorAll('#exportParts input:checked')].map((x) => x.value));
   const local = await chrome.storage.local.get(['siteRules', 'addons', 'library', 'history']);
   const data = {
-    app: 'VidSnag', format: 1, version: chrome.runtime.getManifest().version, exportedAt: new Date().toISOString(),
+    app: 'VidPull', format: 1, version: chrome.runtime.getManifest().version, exportedAt: new Date().toISOString(),
     settings: await getSettings()
   };
   if (parts.has('siteRules')) data.siteRules = normalizeSiteRules(local.siteRules);
@@ -266,7 +266,7 @@ $('exportBtn').addEventListener('click', async () => {
   if (parts.has('library')) data.library = local.library || { categories: [], items: [] };
   if (parts.has('history')) data.history = Array.isArray(local.history) ? local.history : [];
   const d = new Date();
-  downloadText(`vidsnag-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`, JSON.stringify(data, null, 2));
+  downloadText(`vidpull-backup-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.json`, JSON.stringify(data, null, 2));
   flash('Backup exported');
 });
 
@@ -277,7 +277,7 @@ $('importFile').addEventListener('change', async (e) => {
   let data;
   try {
     data = JSON.parse(await f.text());
-    if (!data || data.app !== 'VidSnag' || typeof data !== 'object') throw new Error('This is not a VidSnag backup file');
+    if (!data || data.app !== 'VidPull' || typeof data !== 'object') throw new Error('This is not a VidPull backup file');
   } catch (err) { flash(err.message, true); return; }
   const has = ['settings', 'siteRules', 'addons', 'library', 'history'].filter((k) => data[k]);
   const choice = await formDialog({

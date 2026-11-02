@@ -59,7 +59,7 @@ function render() {
   $('libEmptyTitle').textContent = lib.items.length ? 'Nothing here' : 'Nothing saved yet';
   $('libEmptyText').textContent = lib.items.length
     ? 'No saved links match this list, category or search.'
-    : type === 'video' ? 'Use “Save to list” in a video’s ⋯ menu, or right-click a video › VidSnag › Save video to list.' : 'Use the bookmark button at the top, or right-click a page › VidSnag › Save this page to list.';
+    : type === 'video' ? 'Use “Save to list” in a video’s ⋯ menu, or right-click a video › VidPull › Save video to list.' : 'Use the bookmark button at the top, or right-click a page › VidPull › Save this page to list.';
   if (ctx.view === 'library') {
     const expired = lib.items.filter((x) => x.linkStatus === 'expired').length;
     setFooter(`${lib.items.length} saved${expired ? ` · ${expired} expired` : ''}`, lib.items.length ? 'Check links' : '', () => checkLinks(null));

@@ -1,10 +1,10 @@
 // Applies theme, accent colour, text size and window size to an extension page.
 export const ACCENTS = {
+  orange: ['#ea580c', '#fb923c'], // VidPull brand
   teal: ['#0f766e', '#2dd4bf'],
   blue: ['#2563eb', '#60a5fa'],
   violet: ['#7c3aed', '#a78bfa'],
   rose: ['#e11d48', '#fb7185'],
-  orange: ['#c2410c', '#fb923c'],
   green: ['#15803d', '#4ade80'],
   slate: ['#334155', '#cbd5e1']
 };
@@ -38,7 +38,7 @@ export function applyAppearance(settings, { sizeBody = false } = {}) {
   const dark = isDark(settings);
   root.dataset.theme = dark ? 'dark' : 'light';
   root.style.colorScheme = dark ? 'dark' : 'light';
-  const pair = settings.accent === 'custom' ? [settings.accentCustom, settings.accentCustom] : (ACCENTS[settings.accent] || ACCENTS.teal);
+  const pair = settings.accent === 'custom' ? [settings.accentCustom, settings.accentCustom] : (ACCENTS[settings.accent] || ACCENTS.orange);
   const accent = dark ? pair[1] : pair[0];
   root.style.setProperty('--accent', accent);
   root.style.setProperty('--accent-text', luminance(accent) > 0.45 ? '#0b1513' : '#ffffff');

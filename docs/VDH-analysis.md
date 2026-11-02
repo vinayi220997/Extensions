@@ -37,8 +37,8 @@
 - Actions: Download, Download as…, Audio only, Copy URL, and per-site default action.
 - Messaging: `mut-settings`, `do_download`, `abort_download`, `retry_download` and others. The UI re-renders on `storage.onChanged`.
 
-## What VidSnag kept, simplified or dropped (v2.0)
-| VDH | VidSnag 2.0 |
+## What VidPull kept, simplified or dropped (v2.0)
+| VDH | VidPull 2.0 |
 |---|---|
 | webRequest sniffing + manifest probing | Kept (`onSendHeaders` + `onResponseStarted`, HLS/DASH parsers) plus rule-addon URL patterns |
 | DNR header replay | Kept, with per-job rules for every CDN host and cleanup on start |

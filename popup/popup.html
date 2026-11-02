@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VidSnag</title>
+  <title>VidPull</title>
   <link rel="stylesheet" href="../ui/theme.css">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <header class="top">
     <div class="brand">
-      <img src="../icons/icon32.png" alt="" width="22" height="22">
-      <span>VidSnag</span>
+      <svg class="logo" viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect width="32" height="32" rx="7.5" fill="var(--accent)"/><path d="M10.5 6.7v12.2l10.9-6.1z" fill="var(--accent-text)"/><path d="M11.5 22.4 16 25.6l4.5-3.2" fill="none" stroke="var(--accent-text)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="7.7" y="27.4" width="16.6" height="2.4" rx="1.2" fill="var(--accent-text)" opacity=".85"/></svg>
+      <span>VidPull</span>
     </div>
     <div class="mode-switch" id="modeSwitch" role="toolbar" aria-label="Sidebar display mode" hidden>
       <button data-mode="max" aria-pressed="false"></button>
@@ -53,7 +53,7 @@
       <div id="mediaEmpty" class="empty" hidden>
         <div class="empty-art" aria-hidden="true"></div>
         <h2>No media detected yet</h2>
-        <p>Start playing the video on this page — VidSnag picks up streams as soon as the player loads them.</p>
+        <p>Start playing the video on this page — VidPull picks up streams as soon as the player loads them.</p>
         <div class="empty-actions">
           <button class="btn" id="rescan">Scan page again</button>
           <button class="btn" id="reloadPage">Reload page</button>
@@ -65,7 +65,7 @@
       </div>
       <div id="mediaUnsupported" class="empty" hidden>
         <h2>Nothing to scan here</h2>
-        <p>VidSnag works on regular web pages (http/https). Switch to a tab with a video.</p>
+        <p>VidPull works on regular web pages (http/https). Switch to a tab with a video.</p>
       </div>
     </section>
 

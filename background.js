@@ -1,4 +1,4 @@
-// VidSnag service worker: media detection, manifest probing, download queue, history.
+// VidPull service worker: media detection, manifest probing, download queue, history.
 import {
   classify, normalizeMediaUrl, hashId, hostOf, buildFilename, sanitizeFolder, sanitizeFilename,
   resolutionLabel, formatDuration, extFromUrl
@@ -14,7 +14,7 @@ const MAX_HISTORY = 500;
 const MAX_PARALLEL_STREAM_JOBS = 3;
 const OFFSCREEN_URL = 'offscreen/offscreen.html';
 const PANEL_URL = 'popup/popup.html';
-const BADGE_COLORS = { teal: '#0f766e', blue: '#2563eb', violet: '#7c3aed', rose: '#e11d48', orange: '#c2410c', green: '#15803d', slate: '#334155' };
+const BADGE_COLORS = { orange: '#ea580c', teal: '#0f766e', blue: '#2563eb', violet: '#7c3aed', rose: '#e11d48', green: '#15803d', slate: '#334155' };
 const WINDOW_DIMS = { S: [380, 520], M: [440, 640], L: [560, 720] };
 
 let settingsCache = null;
@@ -38,6 +38,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
     setupContextMenus();
     refreshAllBadges();
     applyPanelBehavior();
+    applyToolbarIcon();
+    if (changes.settings.newValue?.dockOpen && !changes.settings.oldValue?.dockOpen) closeNativeSidePanel();
   }
   if (area === 'local' && changes.siteRules) siteRulesCache = normalizeSiteRules(changes.siteRules.newValue);
   if (area === 'local' && changes.addons) {
@@ -53,7 +55,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 let chain = Promise.resolve();
 function serialize(fn) {
   const p = chain.then(fn, fn);
-  chain = p.catch((e) => console.warn('[VidSnag]', e));
+  chain = p.catch((e) => console.warn('[VidPull]', e));
   return p;
 }
 const tabKey = (tabId) => `tab:${tabId}`;
@@ -117,7 +119,7 @@ chrome.webRequest.onResponseStarted.addListener((d) => {
   if (d.tabId < 0 || d.method !== 'GET') return;
   if (d.statusCode < 200 || d.statusCode >= 300) return;
   const headers = Object.fromEntries((d.responseHeaders || []).map((h) => [h.name.toLowerCase(), h.value]));
-  onNetworkResponse(d, headers, referer).catch((e) => console.warn('[VidSnag] detect', e));
+  onNetworkResponse(d, headers, referer).catch((e) => console.warn('[VidPull] detect', e));
 }, { urls: ['http://*/*', 'https://*/*'], types: ['media', 'xmlhttprequest', 'other', 'object'] }, ['responseHeaders']);
 
 function totalSize(headers) {
@@ -245,7 +247,7 @@ async function addMedia(tabId, info) {
   });
   if (created) {
     updateBadge(tabId);
-    if (info.kind === 'hls' || info.kind === 'dash') probeManifest(tabId, id).catch((e) => console.warn('[VidSnag] probe', e));
+    if (info.kind === 'hls' || info.kind === 'dash') probeManifest(tabId, id).catch((e) => console.warn('[VidPull] probe', e));
   }
 }
 
@@ -405,7 +407,7 @@ async function addHeaderRule(url, referer) {
     });
     return id;
   } catch (e) {
-    console.warn('[VidSnag] header rule', e);
+    console.warn('[VidPull] header rule', e);
     return null;
   }
 }
@@ -415,7 +417,7 @@ async function removeHeaderRule(id) {
 }
 
 // Manifests reported by page scripts/markup (not seen on the network) are fetched without cookies
-// unless they are on the page's own site, so a page can't make VidSnag send credentialed requests.
+// unless they are on the page's own site, so a page can't make VidPull send credentialed requests.
 function probeCredentials(item) {
   if ((item.sources || []).includes('network')) return 'include';
   const site = (h) => h.split('.').slice(-2).join('.');
@@ -458,7 +460,7 @@ chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
 chrome.webNavigation.onHistoryStateUpdated.addListener((d) => {
   if (d.frameId !== 0 || d.tabId < 0) return;
   mutateTab(d.tabId, (st) => { st.pageUrl = d.url; }).then(() => {
-    setTimeout(() => chrome.tabs.sendMessage(d.tabId, { type: 'vidsnag-scan' }).catch(() => {}), 800);
+    setTimeout(() => chrome.tabs.sendMessage(d.tabId, { type: 'vidpull-scan' }).catch(() => {}), 800);
   });
 });
 function sameDoc(a, b) {
@@ -471,10 +473,10 @@ async function updateBadge(tabId) {
   const count = Object.values(state.items).filter((i) => i.status !== 'error').length;
   const text = s.showBadge && count ? String(count) : '';
   await chrome.action.setBadgeText({ tabId, text }).catch(() => {});
-  await chrome.action.setBadgeBackgroundColor({ tabId, color: s.accent === 'custom' ? s.accentCustom : (BADGE_COLORS[s.accent] || BADGE_COLORS.teal) }).catch(() => {});
-  await chrome.action.setTitle({ tabId, title: count ? `VidSnag – ${count} media found` : 'VidSnag' }).catch(() => {});
+  await chrome.action.setBadgeBackgroundColor({ tabId, color: s.accent === 'custom' ? s.accentCustom : (BADGE_COLORS[s.accent] || BADGE_COLORS.orange) }).catch(() => {});
+  await chrome.action.setTitle({ tabId, title: count ? `VidPull – ${count} media found` : 'VidPull' }).catch(() => {});
   // Unpinned mode: the in-page indicator shows the same count.
-  if (s.dockOpen) chrome.tabs.sendMessage(tabId, { type: 'vidsnag-count', count }, { frameId: 0 }).catch(() => {});
+  if (s.dockOpen) chrome.tabs.sendMessage(tabId, { type: 'vidpull-count', count }, { frameId: 0 }).catch(() => {});
 }
 async function refreshAllBadges() {
   const tabs = await chrome.tabs.query({});
@@ -490,7 +492,7 @@ async function startDownload(tabId, mediaId, opts = {}) {
   const state = await readTab(tabId);
   const item = state.items[mediaId];
   if (!item) throw new Error('This media is no longer available. Reload the page and try again.');
-  if (item.drm || item.status === 'drm') throw new Error('This video is DRM-protected. VidSnag does not download protected content.');
+  if (item.drm || item.status === 'drm') throw new Error('This video is DRM-protected. VidPull does not download protected content.');
   if (item.status === 'probing') throw new Error('Still analyzing this stream — try again in a moment.');
   if (item.status === 'error') throw new Error(item.error || 'This stream could not be read.');
   const source = await buildSource(item, state, opts);
@@ -683,7 +685,7 @@ async function runPageBlobJob(job) {
   setTimeout(() => { pendingBlobs.delete(job.source.url); updateFilenameHook(); }, 120000);
   let res;
   try {
-    res = await chrome.tabs.sendMessage(job.tabId, { type: 'vidsnag-save-blob', url: job.source.url, filename: filename.split('/').pop() }, { frameId: job.source.frameId || 0 });
+    res = await chrome.tabs.sendMessage(job.tabId, { type: 'vidpull-save-blob', url: job.source.url, filename: filename.split('/').pop() }, { frameId: job.source.frameId || 0 });
   } catch {
     res = null;
   }
@@ -1036,7 +1038,7 @@ async function buildContextMenus() {
   await chrome.contextMenus.removeAll();
   const add = (o) => chrome.contextMenus.create(o, () => void chrome.runtime.lastError);
   // Toolbar-icon menu (always available, max 6 entries).
-  add({ id: 'act-dock', title: 'Show the VidSnag page sidebar', contexts: ['action'] });
+  add({ id: 'act-dock', title: 'Show the VidPull page sidebar', contexts: ['action'] });
   add({ id: 'act-sidebar', title: 'Open in Chrome\u2019s side panel', contexts: ['action'] });
   add({ id: 'act-library', title: 'Saved links', contexts: ['action'] });
   add({ id: 'act-history', title: 'Download history', contexts: ['action'] });
@@ -1045,7 +1047,7 @@ async function buildContextMenus() {
   if (!s.contextMenu) return;
   // Page menu.
   const C = ['page', 'video', 'audio', 'link', 'frame', 'image', 'selection'];
-  add({ id: 'vs', title: 'VidSnag', contexts: C });
+  add({ id: 'vs', title: 'VidPull', contexts: C });
   add({ id: 'vs-media-dl', parentId: 'vs', title: 'Download this media', contexts: ['video', 'audio'] });
   add({ id: 'vs-media-audio', parentId: 'vs', title: 'Download audio only', contexts: ['video'] });
   add({ id: 'vs-media-copy', parentId: 'vs', title: 'Copy media link', contexts: ['video', 'audio'] });
@@ -1058,9 +1060,9 @@ async function buildContextMenus() {
   add({ id: 'vs-save-page', parentId: 'vs', title: 'Save this page to list', contexts: C });
   add({ id: 'vs-rescan', parentId: 'vs', title: 'Rescan page for media', contexts: C });
   add({ id: 'vs-sep2', parentId: 'vs', type: 'separator', contexts: C });
-  add({ id: 'vs-dock', parentId: 'vs', title: 'Show the VidSnag page sidebar', contexts: C });
-  add({ id: 'vs-sidebar', parentId: 'vs', title: 'Open VidSnag in Chrome\u2019s side panel', contexts: C });
-  add({ id: 'vs-window', parentId: 'vs', title: 'Open VidSnag in a window', contexts: C });
+  add({ id: 'vs-dock', parentId: 'vs', title: 'Show the VidPull page sidebar', contexts: C });
+  add({ id: 'vs-sidebar', parentId: 'vs', title: 'Open VidPull in Chrome\u2019s side panel', contexts: C });
+  add({ id: 'vs-window', parentId: 'vs', title: 'Open VidPull in a window', contexts: C });
   add({ id: 'vs-library', parentId: 'vs', title: 'Saved links', contexts: C });
 }
 
@@ -1081,7 +1083,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
     if (windowId != null) chrome.sidePanel.open({ windowId }).catch((e) => notify('Sidebar', e.message));
     return;
   }
-  handleMenuClick(info, tab).catch((e) => notify('VidSnag', e.message || String(e)));
+  handleMenuClick(info, tab).catch((e) => notify('VidPull', e.message || String(e)));
 });
 
 async function handleMenuClick(info, tab) {
@@ -1094,7 +1096,7 @@ async function handleMenuClick(info, tab) {
   if (id === 'act-options') return openOptions();
   if (!tab || tab.id < 0) return;
   if (id === 'vs-rescan') {
-    await chrome.tabs.sendMessage(tab.id, { type: 'vidsnag-scan' }).catch(() => {});
+    await chrome.tabs.sendMessage(tab.id, { type: 'vidpull-scan' }).catch(() => {});
     return notify('Rescanning', 'Looking for media on this page…');
   }
   if (id === 'vs-best' || id === 'vs-best-audio') return downloadBest(tab, id === 'vs-best-audio' ? 'audio' : 'auto');
@@ -1119,7 +1121,7 @@ async function handleMenuClick(info, tab) {
     const st = await readTab(tab.id);
     const found = Object.values(st.items).find((i) => i.url === url && i.kind === 'blob');
     if (found && (id === 'vs-media-dl')) return startDownload(tab.id, found.id, {});
-    return notify('Streaming player', 'This player streams the video in pieces. Play it for a few seconds, then open VidSnag to pick the detected stream.');
+    return notify('Streaming player', 'This player streams the video in pieces. Play it for a few seconds, then open VidPull to pick the detected stream.');
   }
   if (id === 'vs-media-copy') {
     const ok = await copyViaOffscreen(url);
@@ -1149,7 +1151,7 @@ async function downloadBest(tab, output) {
   }
   const st = await readTab(tab.id);
   const items = Object.values(st.items).filter((i) => i.status === 'ready');
-  if (!items.length) { notify('Nothing to download', 'VidSnag has not detected any media on this page yet. Play the video, then try again.'); return; }
+  if (!items.length) { notify('Nothing to download', 'VidPull has not detected any media on this page yet. Play the video, then try again.'); return; }
   const score = (i) => (i.kind === 'hls' || i.kind === 'dash' ? 1e12 : 0) + (i.height || 0) * 1e6 + (i.size || 0) / 1e3;
   const best = items.sort((a, b) => score(b) - score(a))[0];
   if (output === 'copy') {
@@ -1194,13 +1196,52 @@ async function floatToken() {
 // ---------------------------------------------------------------------------
 // Panels: popup / sidebar / separate window
 // ---------------------------------------------------------------------------
+// Toolbar icon in the theme colour (drawn at runtime so it follows Settings › Appearance › Colour).
+const ICON_ACCENTS = { orange: '#ea580c', teal: '#0f766e', blue: '#2563eb', violet: '#7c3aed', rose: '#e11d48', green: '#15803d', slate: '#334155' };
+async function applyToolbarIcon() {
+  try {
+    const s = await settings();
+    const color = s.accent === 'custom' ? s.accentCustom : (ICON_ACCENTS[s.accent] || ICON_ACCENTS.orange);
+    const imageData = {};
+    for (const size of [16, 32]) {
+      const c = new OffscreenCanvas(size, size);
+      const g = c.getContext('2d');
+      g.scale(size / 32, size / 32);
+      g.fillStyle = color;
+      g.beginPath(); g.roundRect(0, 0, 32, 32, 7.5); g.fill();
+      g.fillStyle = '#fff';
+      g.fill(new Path2D('M10.5 6.7v12.2l10.9-6.1z'));
+      g.strokeStyle = '#fff'; g.lineWidth = 2.6; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.stroke(new Path2D('M11.5 22.4 16 25.6l4.5-3.2'));
+      g.globalAlpha = 0.85;
+      g.beginPath(); g.roundRect(7.7, 27.4, 16.6, 2.4, 1.2); g.fill();
+      imageData[size] = g.getImageData(0, 0, size, size);
+    }
+    await chrome.action.setIcon({ imageData });
+  } catch (e) { console.warn('[VidPull] icon', e); }
+}
+
 async function applyPanelBehavior() {
   const s = await settings();
   const sidebar = s.defaultPanel === 'sidebar';
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: sidebar }).catch(() => {});
   await chrome.action.setPopup({ popup: s.defaultPanel === 'popup' ? PANEL_URL : '' }).catch(() => {});
 }
-// Show / pin the VidSnag page sidebar (keeps the user's Max/Mini choice).
+// Show / pin the VidPull page sidebar (keeps the user's Max/Mini choice).
+// Only one VidPull sidebar at a time: when the page sidebar opens, close Chrome's side panel.
+async function closeNativeSidePanel() {
+  try {
+    if (chrome.sidePanel.close) {
+      const wins = await chrome.windows.getAll({ windowTypes: ['normal'] });
+      await Promise.all(wins.map((w) => chrome.sidePanel.close({ windowId: w.id }).catch(() => {})));
+    } else {
+      await chrome.sidePanel.setOptions({ enabled: false });
+      await chrome.sidePanel.setOptions({ enabled: true });
+    }
+  } catch { /* ignore */ }
+  chrome.runtime.sendMessage({ type: 'close-native-sidebar' }).catch(() => {});
+}
+
 async function openDock(toggle = false) {
   const s = await settings();
   const raw = (await chrome.storage.sync.get('settings')).settings || {};
@@ -1208,12 +1249,12 @@ async function openDock(toggle = false) {
   await chrome.storage.sync.set({ settings: { ...raw, dockOpen: open, sidebarMode: s.sidebarMode === 'autohide' && open ? s.lastPinnedMode : s.sidebarMode } });
   return open;
 }
-// Default panel = VidSnag page sidebar: the toolbar icon shows/hides it (on every page).
+// Default panel = VidPull page sidebar: the toolbar icon shows/hides it (on every page).
 chrome.action.onClicked.addListener(async (tab) => {
   const s = await settings();
   if (s.defaultPanel !== 'docked') return;
   const open = await openDock(true);
-  if (open && !/^https?:/.test(tab?.url || '')) notify('VidSnag sidebar', 'The page sidebar appears on regular web pages (http/https).');
+  if (open && !/^https?:/.test(tab?.url || '')) notify('VidPull sidebar', 'The page sidebar appears on regular web pages (http/https).');
 });
 
 async function openPanelWindow(view = '') {
@@ -1406,7 +1447,7 @@ async function libRefresh(id) {
       await new Promise((r) => setTimeout(r, 700));
       const tab = await chrome.tabs.get(tabId).catch(() => null);
       if (!tab) break;
-      if (tab.status === 'complete' && !rescanned) { rescanned = true; chrome.tabs.sendMessage(tabId, { type: 'vidsnag-scan' }).catch(() => {}); }
+      if (tab.status === 'complete' && !rescanned) { rescanned = true; chrome.tabs.sendMessage(tabId, { type: 'vidpull-scan' }).catch(() => {}); }
       const st = await readTab(tabId);
       found = Object.values(st.items).filter(fresh);
       const probing = Object.values(st.items).some((i) => i.status === 'probing');
@@ -1424,7 +1465,7 @@ async function libRefresh(id) {
   let sourceTab = null;
   const open = (await chrome.tabs.query({})).find((t) => t.url && sameDoc(t.url, entry.pageUrl));
   if (open) {
-    chrome.tabs.sendMessage(open.id, { type: 'vidsnag-scan' }).catch(() => {});
+    chrome.tabs.sendMessage(open.id, { type: 'vidpull-scan' }).catch(() => {});
     candidates = await collect(open.id, 5000);
     sourceTab = open.id;
   }
@@ -1509,7 +1550,7 @@ async function doSyncUserScripts() {
       world: 'USER_SCRIPT'
     })));
   } catch (e) {
-    console.warn('[VidSnag] user scripts', e);
+    console.warn('[VidPull] user scripts', e);
   }
 }
 if (chrome.runtime.onUserScriptMessage) {
@@ -1592,9 +1633,9 @@ async function handleMessage(msg, sender) {
     case 'float-hello':
       if (sender.tab?.id >= 0) updateBadge(sender.tab.id);
       return null;
-    // The floating panel is the only VidSnag page allowed inside a web page. Our content script
+    // The floating panel is the only VidPull page allowed inside a web page. Our content script
     // (isolated world) gets a per-session secret and passes it to the frame, which checks it here,
-    // so a website can't embed the VidSnag UI by itself.
+    // so a website can't embed the VidPull UI by itself.
     case 'float-token': {
       if (!sender.tab || sender.frameId !== 0 || !/^https?:/.test(sender.url || '') || sender.id !== chrome.runtime.id) throw new Error('Not allowed');
       return floatToken();
@@ -1618,7 +1659,7 @@ async function handleMessage(msg, sender) {
       updateBadge(msg.tabId);
       return null;
     case 'rescan':
-      await chrome.tabs.sendMessage(msg.tabId, { type: 'vidsnag-scan' }).catch(() => {});
+      await chrome.tabs.sendMessage(msg.tabId, { type: 'vidpull-scan' }).catch(() => {});
       return null;
     case 'download':
       return startDownload(msg.tabId, msg.mediaId, { variantId: msg.variantId, output: msg.output, filename: msg.filename, saveAs: msg.saveAs });
@@ -1639,7 +1680,7 @@ async function handleMessage(msg, sender) {
       return `${buildFilename(src.template || s.filenameTemplate, { title: src.title, host: hostOf(src.pageUrl), res: src.res, selector: src.selectorText })}.${src.output === 'ts' ? 'ts' : src.ext}`;
     }
     case 'eval-selector':
-      return chrome.tabs.sendMessage(msg.tabId, { type: 'vidsnag-eval-selector', selector: msg.selector }, { frameId: 0 }).catch(() => ({ ok: false, error: 'The page is not reachable. Reload it and try again.' }));
+      return chrome.tabs.sendMessage(msg.tabId, { type: 'vidpull-eval-selector', selector: msg.selector }, { frameId: 0 }).catch(() => ({ ok: false, error: 'The page is not reachable. Reload it and try again.' }));
     case 'open-window':
       return openPanelWindow(msg.view || '');
     case 'open-dock':
@@ -1783,6 +1824,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   setupContextMenus();
   pruneHistory();
   applyPanelBehavior();
+  applyToolbarIcon();
   syncUserScripts();
 });
 
@@ -1790,6 +1832,7 @@ chrome.runtime.onStartup.addListener(() => {
   setupContextMenus();
   pruneHistory();
   applyPanelBehavior();
+  applyToolbarIcon();
   syncUserScripts();
 });
 
@@ -1822,4 +1865,4 @@ chrome.runtime.onStartup.addListener(() => {
 })();
 
 // Used by the automated test-suite (native context menus can't be clicked in headless Chrome).
-globalThis.__vidsnag = { handleMenuClick, downloadBest, applyPanelBehavior, openPanelWindow, openDock };
+globalThis.__vidpull = { handleMenuClick, downloadBest, applyPanelBehavior, openPanelWindow, openDock };

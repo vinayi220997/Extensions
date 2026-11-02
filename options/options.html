@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VidSnag settings</title>
+  <title>VidPull settings</title>
   <link rel="stylesheet" href="../ui/theme.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="page">
     <header class="page-head">
-      <img src="../icons/icon48.png" alt="" width="36" height="36">
+      <svg class="logo" viewBox="0 0 32 32" width="36" height="36" aria-hidden="true"><rect width="32" height="32" rx="7.5" fill="var(--accent)"/><path d="M10.5 6.7v12.2l10.9-6.1z" fill="var(--accent-text)"/><path d="M11.5 22.4 16 25.6l4.5-3.2" fill="none" stroke="var(--accent-text)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><rect x="7.7" y="27.4" width="16.6" height="2.4" rx="1.2" fill="var(--accent-text)" opacity=".85"/></svg>
       <div>
-        <h1>VidSnag settings</h1>
+        <h1>VidPull settings</h1>
         <p class="muted">Changes are saved automatically and sync with your Chrome profile.</p>
       </div>
     </header>
@@ -55,7 +55,7 @@
           </select>
         </label>
         <label class="row switch">
-          <span><b>Merge separate audio and video</b><small>Many streams (most DASH, some HLS) send sound as its own track. VidSnag joins them into one MP4.</small></span>
+          <span><b>Merge separate audio and video</b><small>Many streams (most DASH, some HLS) send sound as its own track. VidPull joins them into one MP4.</small></span>
           <input type="checkbox" name="mergeAudio">
         </label>
       </section>
@@ -172,14 +172,14 @@
           </div>
         </div>
         <div class="row">
-          <span><b>Open settings</b><small>From the gear button in VidSnag.</small></span>
+          <span><b>Open settings</b><small>From the gear button in VidPull.</small></span>
           <div class="seg" role="radiogroup" aria-label="Open settings">
             <label><input type="radio" name="settingsOpenIn" value="panel"><span>In the current window</span></label>
             <label><input type="radio" name="settingsOpenIn" value="tab"><span>In a new tab</span></label>
           </div>
         </div>
         <label class="row switch">
-          <span><b>Right-click menu</b><small>VidSnag actions when you right-click videos, links and pages.</small></span>
+          <span><b>Right-click menu</b><small>VidPull actions when you right-click videos, links and pages.</small></span>
           <input type="checkbox" name="contextMenu">
         </label>
         <label class="row switch">
@@ -194,7 +194,7 @@
 
       <section id="s-sidebar">
         <h2>Sidebar</h2>
-        <p class="fine muted">VidSnag’s page sidebar docks at the right edge of web pages. These options only change the sidebar — pinning VidSnag’s <i>icon</i> to Chrome’s toolbar is done in Chrome’s puzzle-piece menu and is never changed by VidSnag.</p>
+        <p class="fine muted">VidPull’s page sidebar docks at the right edge of web pages. These options only change the sidebar — pinning VidPull’s <i>icon</i> to Chrome’s toolbar is done in Chrome’s puzzle-piece menu and is never changed by VidPull.</p>
         <label class="row switch">
           <span><b>Show the page sidebar</b><small>On every web page, until you close it (× in the sidebar).</small></span>
           <input type="checkbox" name="dockOpen">
@@ -240,7 +240,7 @@
 
     <section id="s-addons">
       <h2>Addons &amp; custom scripts</h2>
-      <p class="fine muted">Teach VidSnag new sites. <b>Rule addons</b> (.json) add URL patterns and CSS selectors and work right away. <b>Script addons</b> (.js) run your JavaScript on matching pages and report media with <code>VidSnag.report([...])</code>. Only install addons you trust.</p>
+      <p class="fine muted">Teach VidPull new sites. <b>Rule addons</b> (.json) add URL patterns and CSS selectors and work right away. <b>Script addons</b> (.js) run your JavaScript on matching pages and report media with <code>VidPull.report([...])</code>. Only install addons you trust.</p>
       <div id="userScriptsStatus" class="callout" hidden></div>
       <div class="row-actions">
         <label class="btn primary file-btn"><input type="file" id="addonFile" accept=".json,.js,application/json,text/javascript" multiple hidden>Upload addon…</label>
@@ -280,7 +280,7 @@
         <label><input type="checkbox" value="history"> Download history</label>
       </div>
       <div class="row">
-        <span><b>Import</b><small>Load a VidSnag backup (.json). You can merge it with what you have or replace it.</small></span>
+        <span><b>Import</b><small>Load a VidPull backup (.json). You can merge it with what you have or replace it.</small></span>
         <label class="btn file-btn"><input type="file" id="importFile" accept=".json,application/json" hidden>Import…</label>
       </div>
       <div class="row">
@@ -289,7 +289,7 @@
       </div>
     </section>
 
-    <p class="fine muted foot-note">Shortcuts: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> opens VidSnag, <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> downloads the best media on the tab. Change them at chrome://extensions/shortcuts. <a href="../popup/popup.html?mode=tab&amp;view=help" id="helpLink">Help &amp; troubleshooting</a></p>
+    <p class="fine muted foot-note">Shortcuts: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> opens VidPull, <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> downloads the best media on the tab. Change them at chrome://extensions/shortcuts. <a href="../popup/popup.html?mode=tab&amp;view=help" id="helpLink">Help &amp; troubleshooting</a></p>
   </div>
   <div id="saved" class="saved-toast" role="status" aria-live="polite"></div>
   <script type="module" src="options.js"></script>

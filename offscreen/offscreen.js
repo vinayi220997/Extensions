@@ -259,7 +259,7 @@ async function runJob(job, options) {
   } catch (e) {
     state.controller.abort(); // stop the other parallel segment fetches
     if (e instanceof Cancelled || state.cancelled) return;
-    console.error('[VidSnag offscreen]', e);
+    console.error('[VidPull offscreen]', e);
     await send('failed', { jobId: job.id, error: e.message || String(e) });
   } finally {
     active.delete(job.id);

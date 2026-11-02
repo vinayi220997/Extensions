@@ -1,9 +1,9 @@
-// VidSnag content script (isolated world). Runs a set of independent detectors over the page
+// VidPull content script (isolated world). Runs a set of independent detectors over the page
 // and reports media to the service worker. Detectors are plain functions in DETECTORS, so new
 // technologies can be added without touching the rest.
 (() => {
-  if (window.__vidsnagLoaded) return;
-  window.__vidsnagLoaded = true;
+  if (window.__vidpullLoaded) return;
+  window.__vidpullLoaded = true;
 
   const MEDIA_EXT = /\.(mp4|m4v|webm|mkv|mov|ogv|flv|3gp|avi|wmv|mp3|m4a|aac|ogg|oga|opus|wav|flac|weba|m3u8|mpd)(\?|#|$)/i;
   const DATA_ATTRS = ['data-src', 'data-video', 'data-video-src', 'data-video-url', 'data-url', 'data-mp4', 'data-webm',
@@ -172,7 +172,7 @@
   }
 
   // blob: sources. A blob created from a real file can be saved; a MediaSource (MSE) stream can't
-  // be read back – VidSnag catches its underlying HLS/DASH stream on the network instead.
+  // be read back – VidPull catches its underlying HLS/DASH stream on the network instead.
   function inspectBlobs(notices) {
     const out = [];
     for (const el of queryAll('video, audio')) {
@@ -236,7 +236,7 @@
       found.set(url, { ...prev, ...Object.fromEntries(Object.entries(item).filter(([, v]) => v)), url });
     };
     for (const [name, fn] of Object.entries(DETECTORS)) {
-      try { fn().forEach(add); } catch (e) { console.debug('[VidSnag] detector failed:', name, e); }
+      try { fn().forEach(add); } catch (e) { console.debug('[VidPull] detector failed:', name, e); }
     }
     try { inspectBlobs(notices).forEach(add); } catch { /* ignore */ }
     // Plain blob: srcs from html5() were dropped by add(); blob items come from inspectBlobs only.
@@ -281,7 +281,7 @@
   });
 
   // ----- player probe (main world) → items -----
-  document.addEventListener('vidsnag:probe', (e) => {
+  document.addEventListener('vidpull:probe', (e) => {
     let list;
     try { list = JSON.parse(e.detail); } catch { return; }
     if (!Array.isArray(list)) return;
@@ -321,12 +321,12 @@
 
   // ----- messages from the service worker -----
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-    if (msg?.type === 'vidsnag-scan') {
+    if (msg?.type === 'vidpull-scan') {
       lastSignature = '';
-      document.dispatchEvent(new CustomEvent('vidsnag:rescan')); // player probe + script addons
+      document.dispatchEvent(new CustomEvent('vidpull:rescan')); // player probe + script addons
       setTimeout(() => report(true), 250);
       sendResponse({ ok: true });
-    } else if (msg?.type === 'vidsnag-eval-selector') {
+    } else if (msg?.type === 'vidpull-eval-selector') {
       if (window !== window.top) return false;
       try {
         const el = document.querySelector(msg.selector);
@@ -335,7 +335,7 @@
       } catch (e) {
         sendResponse({ ok: false, error: `Invalid selector: ${e.message}` });
       }
-    } else if (msg?.type === 'vidsnag-save-blob') {
+    } else if (msg?.type === 'vidpull-save-blob') {
       // Save an in-page blob video through a normal browser download.
       if (!blobInfo.get(msg.url)?.ok) { sendResponse({ ok: false, error: 'This in-page video is no longer available. Play it again and retry.' }); return false; }
       const a = document.createElement('a');

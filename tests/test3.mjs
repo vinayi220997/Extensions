@@ -1,4 +1,4 @@
-// VidSnag 2.1 suite: sorting (+ with filters), duration/size info, global vs per-site default
+// VidPull 2.1 suite: sorting (+ with filters), duration/size info, global vs per-site default
 // actions, pause/resume, sidebar Max/Mini/Unpinned modes with progress rings and the floating indicator.
 import { createRequire } from 'module';
 import fs from 'fs';
@@ -162,7 +162,7 @@ await step('global-defaults', async () => {
   await o.waitForTimeout(500);
   const tabB = await sw.evaluate((id) => chrome.tabs.get(id), b.tabId);
   const before = (await jobs()).length;
-  await sw.evaluate(([t]) => globalThis.__vidsnag.downloadBest(t, null), [tabB]);
+  await sw.evaluate(([t]) => globalThis.__vidpull.downloadBest(t, null), [tabB]);
   const j2 = await waitFor(async () => (await jobs()).length > before && (await jobs()).sort((x, y) => y.createdAt - x.createdAt)[0], 5000);
   check('Alt+Shift+D (best media) follows the global default (audio)', j2?.source.output === 'audio', j2?.source.output);
   // Disable: back to Download
@@ -222,7 +222,7 @@ await step('frame-guard', async () => {
     await page.waitForTimeout(1500);
     const fr = page.frames().find((f) => f.url().includes('popup.html'));
     const text = fr ? await fr.evaluate(() => document.body?.innerText || '').catch(() => '') : '';
-    check(`A website can't embed VidSnag (${q})`, !fr || !/Media|Saved|Download/.test(text) || /only be opened/.test(text), fr ? text.slice(0, 80) : 'blocked by Chrome');
+    check(`A website can't embed VidPull (${q})`, !fr || !/Media|Saved|Download/.test(text) || /only be opened/.test(text), fr ? text.slice(0, 80) : 'blocked by Chrome');
     await page.evaluate(() => document.getElementById('evil')?.remove());
   }
   await page.close();

@@ -118,7 +118,7 @@ async function pin() {
     const size = WINDOW_SIZES[ctx.settings.windowSize] || WINDOW_SIZES.M;
     pipWindow = await documentPictureInPicture.requestWindow({ width: size.width, height: size.height });
     const doc = pipWindow.document;
-    doc.title = 'VidSnag (pinned)';
+    doc.title = 'VidPull (pinned)';
     doc.body.style.cssText = 'margin:0;height:100vh;overflow:hidden;';
     const frame = doc.createElement('iframe');
     frame.src = chrome.runtime.getURL(`popup/popup.html?mode=pip&view=${ctx.view}`);
@@ -149,8 +149,8 @@ function updatePinButton() {
 function panelMenu() {
   const pinned = ctx.mode === 'pip' || !!pipWindow;
   showMenu($('btnPanel'), [
-    { header: 'Open VidSnag in' },
-    { label: 'Popup', icon: 'list', checked: ctx.mode === 'popup', disabled: ctx.mode === 'popup', onClick: () => chrome.action.openPopup?.().catch(() => toast('Click the VidSnag toolbar icon to open the popup.')) },
+    { header: 'Open VidPull in' },
+    { label: 'Popup', icon: 'list', checked: ctx.mode === 'popup', disabled: ctx.mode === 'popup', onClick: () => chrome.action.openPopup?.().catch(() => toast('Click the VidPull toolbar icon to open the popup.')) },
     { label: 'Page sidebar (Max / Mini / Auto-hide)', icon: 'sidebar', checked: ctx.mode === 'dock', disabled: ctx.mode === 'dock', onClick: openDock },
     { label: 'Chrome side panel', icon: 'sidebar', checked: ctx.mode === 'sidebar', disabled: ctx.mode === 'sidebar', onClick: openSidebar },
     { label: 'Separate window', icon: 'window', checked: ctx.mode === 'window', disabled: ctx.mode === 'window', onClick: () => openWindow() },
@@ -213,7 +213,7 @@ function applySettings(s) {
   if (changed && started) switchView(compact ? 'media' : ctx.view);
 }
 
-// Max / Mini / Auto-hide. These only change VidSnag's sidebar — never the toolbar pin of the
+// Max / Mini / Auto-hide. These only change VidPull's sidebar — never the toolbar pin of the
 // extension icon, which Chrome alone controls (puzzle-piece menu).
 async function setPanelMode(mode) {
   const s = ctx.settings;
@@ -233,7 +233,7 @@ async function setPanelMode(mode) {
   toast('Auto-hide on — use the handle at the right edge of the page');
   setTimeout(() => {
     if (ctx.mode === 'pip') { try { window.parent.close(); } catch { window.close(); } }
-    else if (ctx.mode !== 'tab') window.close(); // closes the side panel / VidSnag window
+    else if (ctx.mode !== 'tab') window.close(); // closes the side panel / VidPull window
   }, 700);
 }
 
@@ -247,8 +247,8 @@ async function closeDock() {
   await saveSettings({ dockOpen: false });
 }
 
-// Refuse to run inside a web page, except as the floating panel opened by VidSnag's own content
-// script (verified with a per-session secret). Stops other sites from framing the VidSnag UI.
+// Refuse to run inside a web page, except as the floating panel opened by VidPull's own content
+// script (verified with a per-session secret). Stops other sites from framing the VidPull UI.
 async function allowedToRun() {
   let framed = false;
   try { framed = window.top !== window && window.top.location.origin !== location.origin; } catch { framed = true; }
@@ -262,7 +262,7 @@ async function allowedToRun() {
 async function init() {
   if (!(await allowedToRun())) {
     document.body.replaceChildren();
-    document.body.textContent = 'VidSnag can only be opened from its own button or panel.';
+    document.body.textContent = 'VidPull can only be opened from its own button or panel.';
     return;
   }
   document.body.dataset.mode = ctx.mode;
@@ -300,6 +300,14 @@ async function init() {
     await saveSettings({ sidebarMode: ctx.settings.lastPinnedMode || 'max' });
     applySettings(await getSettings());
   }
+  // One sidebar at a time: Chrome's side panel replaces the page sidebar, and closes itself
+  // as soon as the page sidebar is opened again.
+  if (ctx.mode === 'sidebar') {
+    if (ctx.settings.dockOpen) { await saveSettings({ dockOpen: false }); applySettings(await getSettings()); }
+    const bye = () => window.close();
+    chrome.storage.onChanged.addListener((c, area) => { if (area === 'sync' && c.settings?.newValue?.dockOpen && !c.settings?.oldValue?.dockOpen) bye(); });
+    chrome.runtime.onMessage.addListener((m) => { if (m?.type === 'close-native-sidebar') bye(); return false; });
+  }
 
   for (const v of Object.values(VIEWS)) v.init?.();
   started = true;
@@ -321,7 +329,7 @@ async function init() {
     await media.ready;
     if (!media.count() && jobs.activeCount()) switchView('jobs');
   }
-  if (ctx.mode === 'window' && new URLSearchParams(location.search).get('pinhint')) toast('Click 📌 to pin VidSnag on top');
+  if (ctx.mode === 'window' && new URLSearchParams(location.search).get('pinhint')) toast('Click 📌 to pin VidPull on top');
 }
 
 init().catch((e) => { console.error(e); toast(e.message, true); });

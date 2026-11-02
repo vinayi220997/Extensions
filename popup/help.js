@@ -15,8 +15,8 @@ const SECTIONS = [
   ['Getting started', true, () => [
     h('ol', {},
       h('li', {}, 'Open a page with a video and ', b('press play'), '. Streaming players only load their stream once playback starts.'),
-      h('li', {}, 'The number on the VidSnag icon shows how many media were found.'),
-      h('li', {}, 'Open VidSnag, pick a quality and click ', b('Download'), '. Files go to ', h('code', { text: 'Downloads/VidSnag' }), ' unless you change it in Settings.'))
+      h('li', {}, 'The number on the VidPull icon shows how many media were found.'),
+      h('li', {}, 'Open VidPull, pick a quality and click ', b('Download'), '. Files go to ', h('code', { text: 'Downloads/VidPull' }), ' unless you change it in Settings.'))
   ]],
   ['What the labels mean', false, () => [
     ul(
@@ -25,7 +25,7 @@ const SECTIONS = [
       [chip('DASH'), ' an .mpd stream. Video and audio usually come separately and are merged into one MP4.'],
       [chip('BLOB'), ' an in-page video. Saved straight from the page while it is open.'],
       [chip('Live', 'live'), ' a live broadcast — recording runs until you press ', b('Stop & save'), '.'],
-      [chip('AES'), ' encrypted with a standard key that VidSnag can decrypt.'],
+      [chip('AES'), ' encrypted with a standard key that VidPull can decrypt.'],
       [chip('DRM', 'warn'), ' copy-protected (Netflix-style). Can be played, never downloaded.'])
   ]],
   ['Downloading: quality, format, audio', false, () => [
@@ -49,8 +49,8 @@ const SECTIONS = [
   ['Saved links & categories', false, () => [
     p('Keep videos and pages to come back to later. Videos and Pages are separate lists.'),
     ul(
-      ['Save a video: ⋯ › ', b('Save to list'), ' or right-click it › VidSnag › Save video to list.'],
-      ['Save the page: the ', b('bookmark'), ' button at the top, or right-click › VidSnag › Save this page to list.'],
+      ['Save a video: ⋯ › ', b('Save to list'), ' or right-click it › VidPull › Save video to list.'],
+      ['Save the page: the ', b('bookmark'), ' button at the top, or right-click › VidPull › Save this page to list.'],
       ['Categories: ⋯ in the Saved tab › New category / Manage categories (rename, recolour, delete).'],
       ['Each item can be opened, downloaded, copied, edited, moved or deleted from its ⋯ menu.'])
   ]],
@@ -63,33 +63,34 @@ const SECTIONS = [
   ]],
   ['Sidebar, window and pinning', false, () => [
     ul(
-      [b('Page sidebar'), ': VidSnag\u2019s own sidebar docked at the right edge of web pages. Show it from the panel menu, the right-click menu, or make it the toolbar icon\u2019s default (Settings › Appearance › Default panel). Close it with ×.'],
+      [b('Page sidebar'), ': VidPull\u2019s own sidebar docked at the right edge of web pages. Show it from the panel menu, the right-click menu, or make it the toolbar icon\u2019s default (Settings › Appearance › Default panel). Close it with ×.'],
       ['Three icon buttons at the top switch its mode (hover them for a tooltip): ', b('Max'), ' — the full sidebar (drag its left edge to resize); ', b('Mini'), ' — a narrow column (5–10 % of the window) with thumbnail, progress ring (square while paused), duration, size and a download button; ', b('Auto-hide'), ' — only a small arrow handle at the edge. Hover or click the handle (your choice in Settings › Sidebar) to slide the sidebar out; click the Auto-hide button again to pin it back at its previous size.'],
-      ['VidSnag remembers the mode, both widths, the handle position and the auto-hide trigger. The page is shrunk next to the sidebar so nothing is covered (or choose Overlay).'],
-      [b('Toolbar pin is separate'), ': pinning the VidSnag icon to Chrome\u2019s toolbar is done in Chrome\u2019s puzzle-piece menu. VidSnag never changes it, and sidebar modes don\u2019t affect it.'],
-      ['The panel button (next to Help) opens VidSnag as a ', b('popup'), ', in the ', b('sidebar'), ', a ', b('separate window'), ' or a ', b('tab'), '.'],
-      [b('Keep on top'), ' (panel menu) keeps a small VidSnag window above other windows using Chrome Picture-in-Picture. Use it from the window view.'],
+      ['VidPull remembers the mode, both widths, the handle position and the auto-hide trigger. The page is shrunk next to the sidebar so nothing is covered (or choose Overlay).'],
+      ['Only one sidebar is open at a time: opening Chrome\u2019s side panel closes the page sidebar, and the other way round. In Mini, the \u00d7 at the top closes it. On app-style sites (fixed full-screen layouts, such as chat apps) the page is narrowed too, so the sidebar never sits on top of it.'],
+      [b('Toolbar pin is separate'), ': pinning the VidPull icon to Chrome\u2019s toolbar is done in Chrome\u2019s puzzle-piece menu. VidPull never changes it, and sidebar modes don\u2019t affect it.'],
+      ['The panel button (next to Help) opens VidPull as a ', b('popup'), ', in the ', b('sidebar'), ', a ', b('separate window'), ' or a ', b('tab'), '.'],
+      [b('Keep on top'), ' (panel menu) keeps a small VidPull window above other windows using Chrome Picture-in-Picture. Use it from the window view.'],
       ['Settings › Appearance › Default panel decides what the toolbar icon opens.'])
   ]],
   ['Right-click menu & shortcuts', false, () => [
     ul(
       ['Right-click a video: download it, download its audio, copy its link or save it.'],
-      ['Right-click a page: download the best media, its audio, save the page, rescan, or open VidSnag in the sidebar/window.'],
-      ['Right-click the VidSnag icon: sidebar, window, saved links, history, help, settings.'],
-      [h('kbd', { text: 'Alt+Shift+V' }), ' opens VidSnag · ', h('kbd', { text: 'Alt+Shift+D' }), ' downloads the best media. Change them at chrome://extensions/shortcuts.'])
+      ['Right-click a page: download the best media, its audio, save the page, rescan, or open VidPull in the sidebar/window.'],
+      ['Right-click the VidPull icon: sidebar, window, saved links, history, help, settings.'],
+      [h('kbd', { text: 'Alt+Shift+V' }), ' opens VidPull · ', h('kbd', { text: 'Alt+Shift+D' }), ' downloads the best media. Change them at chrome://extensions/shortcuts.'])
   ]],
   ['Addons & custom scripts', false, () => [
-    p('Settings › Addons lets you add detection rules for sites VidSnag doesn’t understand yet.'),
+    p('Settings › Addons lets you add detection rules for sites VidPull doesn’t understand yet.'),
     ul(
       [b('Rule addons'), ' (.json): extra URL patterns and CSS selectors. No code, work immediately.'],
-      [b('Script addons'), ' (.js): run your own JavaScript on matching pages and call ', h('code', { text: 'VidSnag.report([...])' }), '. Chrome requires turning on “Allow User Scripts” for VidSnag at chrome://extensions first.'],
+      [b('Script addons'), ' (.js): run your own JavaScript on matching pages and call ', h('code', { text: 'VidPull.report([...])' }), '. Chrome requires turning on “Allow User Scripts” for VidPull at chrome://extensions first.'],
       'Only install addons you trust — scripts run on the pages they match.')
   ]],
   ['Troubleshooting', false, () => [
     ul(
       [b('Nothing detected'), ': play the video for a few seconds, then click Refresh list. Still nothing? Reload the page and play again, or lower Settings › Ignore files smaller than.'],
-      [b('“DRM-protected”'), ': the site uses copy protection. VidSnag does not download protected content.'],
-      [b('“Streaming player” notice'), ': the page feeds video to its player in pieces. Play the video so VidSnag can find the underlying stream.'],
+      [b('“DRM-protected”'), ': the site uses copy protection. VidPull does not download protected content.'],
+      [b('“Streaming player” notice'), ': the page feeds video to its player in pieces. Play the video so VidPull can find the underlying stream.'],
       [b('HTTP 403 / Server refused access'), ': the address expired or needs the page open. Reload the page, play the video and try again.'],
       [b('No sound in the file'), ': turn on Settings › Merge separate audio and video, or also download the audio track.'],
       [b('File plays oddly'), ': set Settings › HLS stream output to “Original (.ts)” and download again.'],
@@ -97,7 +98,7 @@ const SECTIONS = [
       [b('Saved link expired'), ': use Refresh link in the Saved tab.'])
   ]],
   ['Privacy & fair use', false, () => [
-    p('VidSnag works entirely in your browser. It sends nothing to any server except the websites you download from.'),
+    p('VidPull works entirely in your browser. It sends nothing to any server except the websites you download from.'),
     p('Only download content you have the right to save, and respect each website’s terms.')
   ]]
 ];
@@ -109,5 +110,5 @@ export function show() {
       h('h2', { text: 'Help' }),
       ...SECTIONS.map(([title, open, body]) => h('details', { open }, h('summary', { text: title }), h('div', { class: 'content' }, ...body())))));
   }
-  if (ctx.view === 'help') setFooter('VidSnag help', 'Open in a tab', () => chrome.tabs.create({ url: chrome.runtime.getURL('popup/popup.html?mode=tab&view=help') }));
+  if (ctx.view === 'help') setFooter('VidPull help', 'Open in a tab', () => chrome.tabs.create({ url: chrome.runtime.getURL('popup/popup.html?mode=tab&view=help') }));
 }

@@ -152,11 +152,11 @@ function renderNotices() {
   const out = [];
   if (n.drm) {
     out.push(h('div', { class: 'notice drm' }, icon('lock'),
-      h('span', { text: 'This page plays DRM-protected video. Protected videos can’t be downloaded — VidSnag never bypasses copy protection.' })));
+      h('span', { text: 'This page plays DRM-protected video. Protected videos can’t be downloaded — VidPull never bypasses copy protection.' })));
   }
   if (n.mse && !hasStream && !n.drm) {
     out.push(h('div', { class: 'notice' }, icon('info'),
-      h('span', { text: 'This page uses a streaming player. Play the video for a few seconds so VidSnag can catch its stream. If nothing appears, the site uses a protected or unsupported delivery method.' })));
+      h('span', { text: 'This page uses a streaming player. Play the video for a few seconds so VidPull can catch its stream. If nothing appears, the site uses a protected or unsupported delivery method.' })));
   }
   box.replaceChildren(...out);
 }
@@ -351,7 +351,7 @@ function mediaCard(item) {
   const meta = h('div', { class: 'meta' },
     h('span', { class: 'chip kind', text: kindChip(item) }),
     item.live ? h('span', { class: 'chip live', text: 'Live' }) : null,
-    item.encrypted ? h('span', { class: 'chip', text: 'AES', title: 'Encrypted with a clear key – VidSnag decrypts it' }) : null,
+    item.encrypted ? h('span', { class: 'chip', text: 'AES', title: 'Encrypted with a clear key – VidPull decrypts it' }) : null,
     item.drm || item.status === 'drm' ? h('span', { class: 'chip warn', text: 'DRM' }) : null,
     res ? h('span', { text: res }) : null,
     audio ? h('span', { text: 'Audio' }) : null,
@@ -398,7 +398,7 @@ function mediaCard(item) {
   if (variant?.separateAudio) {
     const merging = ctx.settings.mergeAudio;
     card.append(h('div', { class: merging ? 'note info' : 'note' }, icon(merging ? 'check' : 'alert'),
-      h('span', { text: merging ? 'Video and audio come as separate tracks — VidSnag merges them into one MP4.' : 'This quality has no sound (audio is a separate track). Turn on “Merge audio” in Settings or download audio separately.' })));
+      h('span', { text: merging ? 'Video and audio come as separate tracks — VidPull merges them into one MP4.' : 'This quality has no sound (audio is a separate track). Turn on “Merge audio” in Settings or download audio separately.' })));
   }
   if (item.kind === 'blob') {
     card.append(h('div', { class: 'note info' }, icon('info'), h('span', { text: 'In-page video: saved straight from the page into your Downloads folder.' })));

@@ -1,4 +1,4 @@
-// End-to-end test: loads VidSnag into Chromium, visits test pages, checks detection,
+// End-to-end test: loads VidPull into Chromium, visits test pages, checks detection,
 // drives the popup, downloads each kind of media and verifies files with ffprobe.
 import { createRequire } from 'module';
 import fs from 'fs';

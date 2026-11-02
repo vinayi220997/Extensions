@@ -1,15 +1,16 @@
-// VidSnag page sidebar (docked at the right edge of every page while open).
+// VidPull page sidebar (docked at the right edge of every page while open).
 //   Max       full interface at the user's width (drag the left edge to resize)
 //   Mini      narrow column, 5–10 % of the window width
 //   Auto-Hide only a small drawer handle at the edge; hover or click it to slide the sidebar out
 // The page is shrunk next to the sidebar ("push", default) or overlaid ("overlay").
-// This has nothing to do with pinning VidSnag's icon in Chrome's toolbar, which only Chrome controls.
+// This has nothing to do with pinning VidPull's icon in Chrome's toolbar, which only Chrome controls.
 (() => {
-  if (window !== window.top || window.__vidsnagDock) return;
-  window.__vidsnagDock = true;
+  if (window !== window.top || window.__vidpullDock) return;
+  window.__vidpullDock = true;
 
   const MIN_MAX_W = 280;
-  const MIN_MINI_W = 92;
+  const MIN_MINI_W = 100;
+  const ACCENTS = { orange: '#ea580c', teal: '#0f766e', blue: '#2563eb', violet: '#7c3aed', rose: '#e11d48', green: '#15803d', slate: '#334155' };
   const MAX_MINI_W = 180;
 
   let s = null;                 // settings subset
@@ -27,7 +28,7 @@
   const CSS = `
     :host { all: initial; position: fixed; inset: 0 0 0 auto; z-index: 2147483646; font: 13px system-ui, sans-serif; pointer-events: none; }
     .panel {
-      position: fixed; top: 0; right: 0; bottom: 0; width: var(--w, 380px); pointer-events: auto;
+      position: fixed; top: 0; right: calc(0px - var(--shift, 0px)); bottom: 0; width: var(--w, 380px); pointer-events: auto;
       background: #f7f8f7; border-left: 1px solid rgba(0,0,0,.12); box-shadow: -6px 0 24px rgba(0,0,0,.08);
       transform: translateX(0); transition: transform .22s ease, width .22s ease, box-shadow .22s;
       display: flex;
@@ -49,12 +50,12 @@
       background: transparent; border: 0; padding: 0; outline: none;
     }
     .resizer::after { content: ""; position: absolute; left: 3px; top: 50%; width: 2px; height: 36px; margin-top: -18px; border-radius: 2px; background: rgba(0,0,0,.18); opacity: 0; transition: opacity .15s; }
-    .resizer:hover::after, .resizer:focus-visible::after, :host([data-resizing="true"]) .resizer::after { opacity: 1; background: #0f766e; }
+    .resizer:hover::after, .resizer:focus-visible::after, :host([data-resizing="true"]) .resizer::after { opacity: 1; background: var(--accent, #ea580c); }
     :host([data-mode="autohide"]) .resizer { display: none; }
     .handle {
       all: unset; box-sizing: border-box; position: fixed; right: 0; top: var(--hy, 45%); width: 22px; height: 56px; margin-top: -28px;
       display: none; place-items: center; pointer-events: auto; cursor: pointer; touch-action: none;
-      background: #0f766e; color: #fff; border-radius: 10px 0 0 10px; box-shadow: -2px 2px 10px rgba(0,0,0,.25);
+      background: var(--accent, #ea580c); color: #fff; border-radius: 10px 0 0 10px; box-shadow: -2px 2px 10px rgba(0,0,0,.25);
       opacity: .78; transition: opacity .15s, width .15s;
     }
     .handle:hover, .handle:focus-visible { opacity: 1; width: 26px; }
@@ -63,7 +64,7 @@
     :host([data-mode="autohide"]) .handle { display: grid; }
     :host([data-mode="autohide"][data-expanded="true"]) .handle { opacity: 0; pointer-events: none; }
     .badge { position: absolute; top: -7px; left: -7px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 8px;
-      background: #e11d48; color: #fff; font: 700 10px/16px system-ui, sans-serif; text-align: center; }
+      background: #111827; color: #fff; font: 700 10px/16px system-ui, sans-serif; text-align: center; }
     .badge:empty { display: none; }
     :host([data-hidden="true"]) { display: none !important; }
   `;
@@ -80,8 +81,36 @@
     return Math.round(Math.min(Math.max(MIN_MAX_W, w), Math.max(MIN_MAX_W, vw * 0.7)));
   }
 
+  // App-shell pages (fixed full-screen root, e.g. ChatGPT) ignore html margin; shrink <html> itself
+  // and make it the containing block for fixed children so nothing sits under the sidebar.
+  const SHELL_PROPS = ['width', 'transform', 'min-height', 'overflow-x'];
+  let shellSaved = null;
+  function isAppShell() {
+    const d = document.documentElement, b = document.body;
+    if (!b) return false;
+    const scrollable = Math.max(d.scrollHeight, b.scrollHeight) > window.innerHeight + 4;
+    return !scrollable;
+  }
+  function setShell(px) {
+    const html = document.documentElement;
+    if (px) {
+      if (!shellSaved) shellSaved = Object.fromEntries(SHELL_PROPS.map((p) => [p, [html.style.getPropertyValue(p), html.style.getPropertyPriority(p)]]));
+      html.style.setProperty('width', `calc(100% - ${px}px)`, 'important');
+      html.style.setProperty('transform', 'translateZ(0)', 'important');
+      html.style.setProperty('min-height', '100vh', 'important');
+      html.style.setProperty('overflow-x', 'hidden', 'important');
+      // <html> is now the containing block for fixed elements (ours too): place the panel just past its right edge.
+      host?.style.setProperty('--shift', `${px}px`);
+    } else if (shellSaved) {
+      host?.style.removeProperty('--shift');
+      for (const [p, [v, prio]] of Object.entries(shellSaved)) { if (v) html.style.setProperty(p, v, prio); else html.style.removeProperty(p); }
+      shellSaved = null;
+    }
+  }
   function setPageMargin(px) {
     const html = document.documentElement;
+    if (px && (shellSaved || (marginApplied === null && isAppShell()))) { setShell(px); return; }
+    setShell(0);
     if (px && marginApplied === null) marginApplied = html.style.getPropertyValue('margin-right') || '';
     if (px) {
       if (!reduceMotion.matches && !dragW) {
@@ -97,18 +126,18 @@
   }
 
   function build() {
-    host = document.createElement('vidsnag-sidebar');
+    host = document.createElement('vidpull-sidebar');
     shadow = host.attachShadow({ mode: 'closed' });
     const style = document.createElement('style');
     style.textContent = CSS;
     const panel = document.createElement('div');
     panel.className = 'panel';
     panel.setAttribute('role', 'complementary');
-    panel.setAttribute('aria-label', 'VidSnag sidebar');
+    panel.setAttribute('aria-label', 'VidPull sidebar');
     const resizer = document.createElement('button');
     resizer.className = 'resizer';
     resizer.title = 'Drag to resize · double-click to reset';
-    resizer.setAttribute('aria-label', 'Resize the VidSnag sidebar (arrow keys)');
+    resizer.setAttribute('aria-label', 'Resize the VidPull sidebar (arrow keys)');
     const handle = document.createElement('button');
     handle.className = 'handle';
     handle.innerHTML = ARROW; // static markup
@@ -202,7 +231,7 @@
     if (!host || els.frame) return;
     const f = document.createElement('iframe');
     f.src = chrome.runtime.getURL(`popup/popup.html?mode=dock#t=${encodeURIComponent(token)}`);
-    f.title = 'VidSnag';
+    f.title = 'VidPull';
     f.allow = 'clipboard-write';
     els.panel.append(f);
     els.frame = f;
@@ -230,8 +259,9 @@
     host.setAttribute('data-anim', reduceMotion.matches ? 'off' : 'on');
     host.setAttribute('data-dark', String(s.theme === 'dark' || (s.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)));
     host.style.setProperty('--hy', `${handleY}%`);
-    els.handle.title = s.autoHideTrigger === 'click' ? 'Show VidSnag (click)' : 'Show VidSnag (hover or click)';
-    els.handle.setAttribute('aria-label', 'Show the VidSnag sidebar');
+    host.style.setProperty('--accent', s.accent);
+    els.handle.title = s.autoHideTrigger === 'click' ? 'Show VidPull (click)' : 'Show VidPull (hover or click)';
+    els.handle.setAttribute('aria-label', 'Show the VidPull sidebar');
     els.handle.setAttribute('aria-expanded', String(expanded));
     els.badge.textContent = count ? String(count > 99 ? '99+' : count) : '';
     const w = widthFor(mode === 'autohide' ? s.lastPinnedMode : mode);
@@ -261,7 +291,8 @@
         sidebarMiniPct: Math.min(10, Math.max(5, Number(st.sidebarMiniPct) || 7)),
         autoHideTrigger: st.autoHideTrigger === 'click' ? 'click' : 'hover',
         dockLayout: st.dockLayout === 'overlay' ? 'overlay' : 'push',
-        theme: st.theme || 'system'
+        theme: st.theme || 'system',
+        accent: st.accent === 'custom' && /^#[0-9a-f]{6}$/i.test(st.accentCustom || '') ? st.accentCustom : (ACCENTS[st.accent] || ACCENTS.orange)
       };
       if (typeof dockHandleY === 'number') handleY = dockHandleY;
       layout();
@@ -271,7 +302,7 @@
 
   chrome.storage.onChanged.addListener((changes, area) => { if (area === 'sync' && changes.settings) load(); });
   chrome.runtime.onMessage.addListener((msg) => {
-    if (msg?.type === 'vidsnag-count') { count = msg.count || 0; if (host) els.badge.textContent = count ? String(count > 99 ? '99+' : count) : ''; }
+    if (msg?.type === 'vidpull-count') { count = msg.count || 0; if (host) els.badge.textContent = count ? String(count > 99 ? '99+' : count) : ''; }
     return false;
   });
   window.addEventListener('resize', () => { if (s?.dockOpen) layout(); });

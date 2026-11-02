@@ -246,7 +246,11 @@ body[data-mode="dock"] .top { padding-right: 4px; }
 @media (max-width: 200px) {
   body.mini { min-width: 0; }
   body.mini .top { flex-direction: column; align-items: stretch; gap: 4px; padding: 6px 4px; }
-  body.mini .brand, body.mini .top-actions { display: none; }
+  body.mini .brand { display: none; }
+  /* Mini keeps one control in the header: Close. */
+  body.mini .top { position: relative; padding-right: 26px; }
+  body.mini .top-actions { position: absolute; top: 6px; right: 2px; gap: 0; }
+  body.mini .top-actions > :not(#btnCloseDock) { display: none; }
   body.mini .mode-switch { margin: 0; justify-content: space-between; }
   body.mini .mode-switch button { width: auto; flex: 1; min-width: 22px; }
   body.mini main { padding: 4px; }

@@ -15,7 +15,7 @@ await sw.evaluate(async () => { const { settings } = await chrome.storage.sync.g
 const page = await ctx.newPage();
 await page.goto('http://localhost:8765/page-mp4.html');
 await page.waitForTimeout(2500);
-const host = page.locator('vidsnag-sidebar');
+const host = page.locator('vidpull-sidebar');
 await page.mouse.move(VW - 8, VH * 0.45);
 await page.waitForTimeout(900);
 const expanded = await host.getAttribute('data-expanded');

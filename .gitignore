@@ -1,2 +1,4 @@
 tests/out/
 tests/media/
+tests/out*/
+tests/media/

@@ -1,4 +1,4 @@
-// VidSnag v2 feature suite: panels, appearance, settings, export/import, context menu actions,
+// VidPull v2 feature suite: panels, appearance, settings, export/import, context menu actions,
 // main-screen filters/views, card actions + dialogs, audio/merge/blob downloads, universal
 // detection, notices, addons (rules + scripts), saved links with categories and link refresh.
 import { createRequire } from 'module';
@@ -148,7 +148,7 @@ await step('blob-mse-drm', async () => {
   await p.locator('#mediaList .card').filter({ has: p.locator('.chip.kind', { hasText: /^BLOB$/ }) }).locator('.btn.primary').click();
   const job = await waitJob((j) => j.kind === 'blob');
   const f = job?.finalPath;
-  check('Blob video saved with our name + folder', job?.status === 'done' && /VidSnag[\\/]Blob video test.*\.mp4$/.test(f || '') && fs.existsSync(f) && fs.statSync(f).size === blob.size, `${job?.status} ${job?.error || ''} ${f}`);
+  check('Blob video saved with our name + folder', job?.status === 'done' && /VidPull[\\/]Blob video test.*\.mp4$/.test(f || '') && fs.existsSync(f) && fs.statSync(f).size === blob.size, `${job?.status} ${job?.error || ''} ${f}`);
   await p.close(); await page.close();
 
   const mse = await openPage('page-mse.html', 2500);
@@ -339,17 +339,17 @@ await step('main-screen', async () => {
 await step('context-menu', async () => {
   const { page, tabId } = await openPage('page-hls.html');
   const tab = await sw.evaluate((id) => chrome.tabs.get(id), tabId);
-  await sw.evaluate(([tab]) => globalThis.__vidsnag.handleMenuClick({ menuItemId: 'vs-best-audio' }, tab), [tab]);
+  await sw.evaluate(([tab]) => globalThis.__vidpull.handleMenuClick({ menuItemId: 'vs-best-audio' }, tab), [tab]);
   let job = await waitJob((j) => j.kind === 'hls' && j.source.output === 'audio' && j.createdAt > Date.now() - 15000);
   check('Right-click › Download audio of best media', job?.status === 'done' && job.finalPath.endsWith('.m4a'), job?.error);
-  await sw.evaluate(([tab]) => globalThis.__vidsnag.handleMenuClick({ menuItemId: 'vs-media-dl', srcUrl: 'http://localhost:8765/media/clip.webm' }, tab), [tab]);
+  await sw.evaluate(([tab]) => globalThis.__vidpull.handleMenuClick({ menuItemId: 'vs-media-dl', srcUrl: 'http://localhost:8765/media/clip.webm' }, tab), [tab]);
   job = await waitJob((j) => j.source.url.endsWith('clip.webm') && j.createdAt > Date.now() - 15000);
   check('Right-click a video › Download this media', job?.status === 'done', job?.error);
-  await sw.evaluate(([tab]) => globalThis.__vidsnag.handleMenuClick({ menuItemId: 'vs-save-page' }, tab), [tab]);
-  await sw.evaluate(([tab]) => globalThis.__vidsnag.handleMenuClick({ menuItemId: 'vs-media-save', srcUrl: 'http://localhost:8765/media/clip.webm' }, tab), [tab]);
+  await sw.evaluate(([tab]) => globalThis.__vidpull.handleMenuClick({ menuItemId: 'vs-save-page' }, tab), [tab]);
+  await sw.evaluate(([tab]) => globalThis.__vidpull.handleMenuClick({ menuItemId: 'vs-media-save', srcUrl: 'http://localhost:8765/media/clip.webm' }, tab), [tab]);
   const lib = await library();
   check('Right-click › Save page / Save video to list', lib.items.some((x) => x.type === 'page' && x.url.endsWith('page-hls.html')) && lib.items.some((x) => x.type === 'video' && x.url.endsWith('clip.webm')));
-  await sw.evaluate(([tab]) => globalThis.__vidsnag.handleMenuClick({ menuItemId: 'act-library' }, tab), [tab]);
+  await sw.evaluate(([tab]) => globalThis.__vidpull.handleMenuClick({ menuItemId: 'act-library' }, tab), [tab]);
   await sleep(800);
   const libTab = ctx.pages().find((pg) => pg.url().includes('view=library'));
   check('Toolbar-icon menu › Saved links opens the library in a tab', !!libTab && (await libTab.locator('#view-library.active').count()) === 1);
@@ -522,9 +522,9 @@ await step('export-import', async () => {
   await o.locator('#exportParts input[value="history"]').check();
   await o.click('#exportBtn');
   await sleep(1500);
-  const file = fs.readdirSync(DL).find((f) => /^vidsnag-backup-.*\.json$/.test(f));
+  const file = fs.readdirSync(DL).find((f) => /^vidpull-backup-.*\.json$/.test(f));
   const data = file && JSON.parse(fs.readFileSync(path.join(DL, file)));
-  check('Export writes a backup with settings, rules, addons, library, history', data?.app === 'VidSnag' && data.settings && data.library?.items?.length > 0 && Array.isArray(data.history) && data.siteRules && Array.isArray(data.addons), file);
+  check('Export writes a backup with settings, rules, addons, library, history', data?.app === 'VidPull' && data.settings && data.library?.items?.length > 0 && Array.isArray(data.history) && data.siteRules && Array.isArray(data.addons), file);
   // Change things, then import (replace)
   await setSettings({ defaultResolution: '480', filenameTemplate: 'changed {title}' });
   await sw.evaluate(async () => chrome.storage.local.set({ library: { categories: [], items: [] } }));
@@ -543,7 +543,7 @@ await step('export-import', async () => {
   fs.writeFileSync(bad, '{"hello":1}');
   await o.setInputFiles('#importFile', bad);
   await o.waitForTimeout(400);
-  check('Import rejects files that are not VidSnag backups', (await o.locator('#saved').innerText()).includes('not a VidSnag backup'));
+  check('Import rejects files that are not VidPull backups', (await o.locator('#saved').innerText()).includes('not a VidPull backup'));
   await setSettings({ theme: 'system' });
   await o.close();
 });
@@ -555,14 +555,14 @@ await step('addons', async () => {
   await o.waitForTimeout(400);
   const rule = path.join(OUT, 'rule.json');
   fs.writeFileSync(rule, JSON.stringify({
-    type: 'vidsnag-addon', name: 'Test rules', version: '1.0', matches: ['*://localhost/*'],
+    type: 'vidpull-addon', name: 'Test rules', version: '1.0', matches: ['*://localhost/*'],
     detect: { networkUrlPatterns: ['/api/media/\\d+/stream$'], selectors: [{ selector: '.secret-player', attribute: 'data-x' }] }
   }));
   await o.setInputFiles('#addonFile', rule);
   await o.waitForTimeout(800);
   check('Rule addon uploaded and listed', (await o.locator('#addonList .rule', { hasText: 'Test rules' }).count()) === 1);
   const invalid = path.join(OUT, 'invalid.json');
-  fs.writeFileSync(invalid, JSON.stringify({ type: 'vidsnag-addon', name: 'x', detect: { networkUrlPatterns: ['(('] } }));
+  fs.writeFileSync(invalid, JSON.stringify({ type: 'vidpull-addon', name: 'x', detect: { networkUrlPatterns: ['(('] } }));
   await o.setInputFiles('#addonFile', invalid);
   await o.waitForTimeout(400);
   check('Invalid addon rejected with a message', (await o.locator('#saved').innerText()).includes('Invalid regex'));
@@ -583,7 +583,7 @@ await step('addons', async () => {
   await ext.close();
   sw = ctx.serviceWorkers().find((w) => w.url().includes(extId)) || sw;
   const script = path.join(OUT, 'script.js');
-  fs.writeFileSync(script, `// ==VidSnagScript==\n// @name Config reader\n// @match *://localhost/*\n// ==/VidSnagScript==\nconst f = () => VidSnag.report([...document.querySelectorAll('[data-config]')].map((el) => ({ url: JSON.parse(el.dataset.config).src, title: 'From script addon' })));\nf(); VidSnag.onRescan(f);\n`);
+  fs.writeFileSync(script, `// ==VidPullScript==\n// @name Config reader\n// @match *://localhost/*\n// ==/VidPullScript==\nconst f = () => VidPull.report([...document.querySelectorAll('[data-config]')].map((el) => ({ url: JSON.parse(el.dataset.config).src, title: 'From script addon' })));\nf(); VidPull.onRescan(f);\n`);
   await o.reload();
   await o.waitForTimeout(400);
   await o.setInputFiles('#addonFile', script);
@@ -595,13 +595,13 @@ await step('addons', async () => {
   const sp = await openPage('page-script.html', 4000);
   const sitems = Object.values((await tabState(sp.tabId)).items);
   const fromScript = sitems.find((i) => i.sources.includes('script'));
-  check('Script addon reports media via VidSnag.report()', st.available ? fromScript?.title === 'From script addon' && fromScript.kind === 'hls' : true,
+  check('Script addon reports media via VidPull.report()', st.available ? fromScript?.title === 'From script addon' && fromScript.kind === 'hls' : true,
     st.available ? JSON.stringify(fromScript && { t: fromScript.title, k: fromScript.kind }) : 'User Scripts toggle unavailable in this Chrome build — instructions shown instead');
   if (!st.available) check('Instructions shown when user scripts are off', await o.locator('#userScriptsStatus').isVisible());
   // Backup containing a script addon asks before installing it.
   const backup = path.join(OUT, 'with-script.json');
   const addonsNow = await sw.evaluate(async () => (await chrome.storage.local.get('addons')).addons);
-  fs.writeFileSync(backup, JSON.stringify({ app: 'VidSnag', format: 1, settings: { theme: 'system' }, addons: addonsNow }));
+  fs.writeFileSync(backup, JSON.stringify({ app: 'VidPull', format: 1, settings: { theme: 'system' }, addons: addonsNow }));
   await sw.evaluate(async () => chrome.storage.local.set({ addons: [] }));
   await o.setInputFiles('#importFile', backup);
   await o.locator('dialog.modal', { hasText: 'Import backup' }).waitFor({ timeout: 5000 }).catch(() => {});

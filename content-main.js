@@ -1,9 +1,9 @@
-// VidSnag player probe — runs in the page's own JavaScript world (MAIN) so it can read the
+// VidPull player probe — runs in the page's own JavaScript world (MAIN) so it can read the
 // source lists of common web players. It only reads; it never changes the page.
 // Results go to content.js via a DOM event as a JSON string.
 (() => {
-  if (window.__vidsnagProbe) return;
-  window.__vidsnagProbe = true;
+  if (window.__vidpullProbe) return;
+  window.__vidpullProbe = true;
   const seen = new Set();
 
   function out(list, x) {
@@ -76,12 +76,12 @@
       seen.add(key);
       return true;
     });
-    if (fresh.length) document.dispatchEvent(new CustomEvent('vidsnag:probe', { detail: JSON.stringify(fresh) }));
+    if (fresh.length) document.dispatchEvent(new CustomEvent('vidpull:probe', { detail: JSON.stringify(fresh) }));
   }
 
   probe();
   setTimeout(probe, 1500);
   setTimeout(probe, 5000);
   for (const ev of ['play', 'loadedmetadata']) document.addEventListener(ev, () => setTimeout(probe, 300), true);
-  document.addEventListener('vidsnag:rescan', () => { seen.clear(); probe(); });
+  document.addEventListener('vidpull:rescan', () => { seen.clear(); probe(); });
 })();

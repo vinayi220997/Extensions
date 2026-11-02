@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "VidSnag – Video Downloader",
-  "short_name": "VidSnag",
-  "version": "2.2.0",
-  "description": "Detects videos and audio on any page (MP4, WebM, HLS, DASH, players, blob videos) and downloads them in the quality and format you choose.",
+  "name": "VidPull – Video Downloader",
+  "short_name": "VidPull",
+  "version": "3.0.0",
+  "description": "VidPull finds videos and audio on any page (MP4, WebM, HLS, DASH, players, blob videos) and downloads them in the quality and format you choose.",
   "minimum_chrome_version": "120",
   "permissions": [
     "tabs",
@@ -63,7 +63,7 @@
     }
   ],
   "action": {
-    "default_title": "VidSnag",
+    "default_title": "VidPull",
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -84,7 +84,7 @@
       "suggested_key": {
         "default": "Alt+Shift+V"
       },
-      "description": "Open VidSnag"
+      "description": "Open VidPull"
     },
     "download-best": {
       "suggested_key": {
@@ -93,7 +93,7 @@
       "description": "Download the best detected media on this tab"
     },
     "open-sidebar": {
-      "description": "Open VidSnag in the sidebar"
+      "description": "Open VidPull in the sidebar"
     }
   },
   "optional_permissions": [

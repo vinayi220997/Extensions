@@ -1,4 +1,4 @@
-// Local test site for VidSnag: Range support, Referer-protected folder, simulated live HLS.
+// Local test site for VidPull: Range support, Referer-protected folder, simulated live HLS.
 const http = require('http'), fs = require('fs'), path = require('path');
 const ROOT = __dirname, PORT = 8765;
 const TYPES = { '.html': 'text/html', '.mp4': 'video/mp4', '.webm': 'video/webm', '.m3u8': 'application/vnd.apple.mpegurl',

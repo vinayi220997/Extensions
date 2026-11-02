@@ -1,4 +1,4 @@
-// VidSnag 2.2 suite: page sidebar with Max / Mini / Auto-hide, icon-only controls, resizing,
+// VidPull 2.2 suite: page sidebar with Max / Mini / Auto-hide, icon-only controls, resizing,
 // hover/click auto-hide, persistence, and independence from the toolbar (extension) pin.
 import { createRequire } from 'module';
 import fs from 'fs';
@@ -41,9 +41,10 @@ const toolbarPin = () => sw.evaluate(async () => (chrome.action.getUserSettings 
 const page = await ctx.newPage();
 await page.goto(`${BASE}/page-slow.html`);
 await page.waitForTimeout(2500);
-const host = page.locator('vidsnag-sidebar');
+const host = page.locator('vidpull-sidebar');
 const attr = (n) => host.getAttribute(n);
-const margin = () => page.evaluate(() => getComputedStyle(document.documentElement).marginRight);
+// Space reserved for the sidebar: margin-right on scrolling pages, html width calc on app-shell/short pages.
+const margin = () => page.evaluate(() => { const h = document.documentElement; const m = /calc\(100% - (\d+)px\)/.exec(h.style.width); return m ? `${m[1]}px` : getComputedStyle(h).marginRight; });
 const dockFrame = () => waitFor(async () => page.frames().find((f) => f.url().includes('mode=dock')) || null, 8000);
 // Mode buttons are triggered inside the frame (real-mouse clicks are covered by pin-click.mjs).
 const clickMode = async (f, m) => { await f.evaluate((m) => document.querySelector(`#modeSwitch button[data-mode="${m}"]`).click(), m); await page.waitForTimeout(700); };
@@ -54,7 +55,7 @@ await step('max', async () => {
   await sleep(500);
   const ap = await sw.evaluate(async () => ({ popup: await chrome.action.getPopup({}), beh: await chrome.sidePanel.getPanelBehavior() }));
   check('Default panel “Page sidebar”: toolbar icon toggles the page sidebar', ap.popup === '' && ap.beh.openPanelOnActionClick === false, JSON.stringify(ap));
-  await sw.evaluate(() => globalThis.__vidsnag.openDock(true));
+  await sw.evaluate(() => globalThis.__vidpull.openDock(true));
   await host.waitFor({ state: 'attached', timeout: 5000 });
   await page.waitForTimeout(500); // slide-in transition
   check('Page sidebar opens in Max at its default width (380 px)', (await attr('data-mode')) === 'max' && (await attr('data-width')) === '380');
@@ -84,7 +85,7 @@ await step('max', async () => {
 await step('mini', async () => {
   const f = await dockFrame();
   await clickMode(f, 'mini');
-  const exp = String(Math.max(92, Math.round(VW * 0.07)));
+  const exp = String(Math.max(100, Math.round(VW * 0.07)));
   check('Mini: narrow sidebar ≈ 5–10 % of the window (min usable width)', (await attr('data-mode')) === 'mini' && (await attr('data-width')) === exp && (await margin()) === `${exp}px`, `${await attr('data-width')} vs ${exp}`);
   const pressed = await f.evaluate(() => document.querySelector('#modeSwitch button[aria-pressed="true"]').dataset.mode);
   check('Immediate feedback: Mini highlighted', pressed === 'mini');
@@ -133,7 +134,7 @@ await step('autohide', async () => {
   // The handle is the only visible part (closed shadow DOM → probe the screen)
   const atEdge = await page.evaluate(([w, h]) => document.elementFromPoint(w - 8, h * 0.45)?.tagName, [VW, VH]);
   const offEdge = await page.evaluate(([w, h]) => document.elementFromPoint(w - 60, h * 0.45)?.tagName, [VW, VH]);
-  check('Only a small handle at the right edge is visible', atEdge === 'VIDSNAG-SIDEBAR' && offEdge !== 'VIDSNAG-SIDEBAR', `${atEdge} / ${offEdge}`);
+  check('Only a small handle at the right edge is visible', atEdge === 'VIDPULL-SIDEBAR' && offEdge !== 'VIDPULL-SIDEBAR', `${atEdge} / ${offEdge}`);
   await page.screenshot({ path: path.join(OUT, 'autohide.png') });
 
   // Hover trigger
@@ -185,7 +186,7 @@ await step('persistence', async () => {
   const p2 = await ctx.newPage();
   await p2.goto(`${BASE}/page-mp4.html`);
   await p2.waitForTimeout(2500);
-  check('Other pages show the same sidebar state', (await p2.locator('vidsnag-sidebar').getAttribute('data-mode')) === 'mini');
+  check('Other pages show the same sidebar state', (await p2.locator('vidpull-sidebar').getAttribute('data-mode')) === 'mini');
   await p2.close();
   const s = await settings();
   check('Preferences stored: mode, Max width, Mini width, trigger, open state', s.sidebarMode === 'mini' && s.sidebarMaxWidth === 500 && s.sidebarMiniPct === 10 && s.autoHideTrigger === 'hover' && s.dockOpen === true && s.lastPinnedMode === 'mini', JSON.stringify({ m: s.sidebarMode, w: s.sidebarMaxWidth, p: s.sidebarMiniPct, t: s.autoHideTrigger, o: s.dockOpen }));
@@ -219,7 +220,7 @@ await step('close-and-toolbar-pin', async () => {
   const f = await dockFrame();
   await f.evaluate(() => document.getElementById('btnCloseDock').click());
   await page.waitForTimeout(600);
-  check('Close (×) removes the sidebar and restores the page', (await page.locator('vidsnag-sidebar').count()) === 0 && (await margin()) === '0px' && (await settings()).dockOpen === false);
+  check('Close (×) removes the sidebar and restores the page', (await page.locator('vidpull-sidebar').count()) === 0 && (await margin()) === '0px' && (await settings()).dockOpen === false);
   const after = await toolbarPin();
   check('Extension toolbar pin untouched by all sidebar changes', after === pinBefore, `before ${pinBefore}, after ${after}`);
   const code = fs.readFileSync(path.join(EXT, 'background.js'), 'utf8') + fs.readFileSync(path.join(EXT, 'content-dock.js'), 'utf8') + fs.readFileSync(path.join(EXT, 'popup/app.js'), 'utf8');
