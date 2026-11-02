@@ -130,6 +130,8 @@
       return session;
     };
   }
+  // Report the picture size once the protected video has loaded.
+  for (const ev of ['loadedmetadata', 'resize']) document.addEventListener(ev, () => { if (state.active) emit(); }, true);
   document.addEventListener('encrypted', (e) => {
     state.active = true;
     push(state.initDataTypes, e.initDataType);
@@ -213,12 +215,16 @@
   function probePersistent() {
     if (probed || !origRMKSA) return;
     const ks = state.keySystems[0] || state.available[0];
-    if (!ks) return;
+    // Only Widevine has a standard robustness level to ask with; asking without one makes Chrome log
+    // a warning, and ClearKey/others don't keep offline licences in desktop browsers anyway.
+    if (!ks || !/^com\.widevine\./.test(ks)) return;
     probed = true;
-    origRMKSA(ks, [{
-      initDataTypes: ['cenc'],
-      videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }],
-      persistentState: 'required', sessionTypes: ['persistent-license']
-    }]).then(() => { state.persistentLicense = true; }, () => { state.persistentLicense = false; }).finally(emit);
+    try {
+      Promise.resolve(origRMKSA(ks, [{
+        initDataTypes: ['cenc'],
+        videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"', robustness: 'SW_SECURE_CRYPTO' }],
+        persistentState: 'required', sessionTypes: ['persistent-license']
+      }])).then(() => { state.persistentLicense = true; }, () => { state.persistentLicense = false; }).then(emit, emit);
+    } catch { state.persistentLicense = false; emit(); }
   }
 })();

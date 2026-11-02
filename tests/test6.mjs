@@ -57,7 +57,7 @@ await step('eme', async () => {
   check('Licence server found from the real licence request', d.licenseUrls?.includes(`${BASE}/drm/license`), JSON.stringify(d.licenseUrls));
   check('Key ID read from the init data', d.kids?.includes('a7e61c373e219033c21091fa607bf3b8'), JSON.stringify(d.kids));
   check('Protocol (MSE/EME), session type and format reported', d.protocols?.includes('MSE / EME') && d.sessionTypes?.includes('temporary') && d.formats?.includes('MP4'), JSON.stringify([d.protocols, d.sessionTypes, d.formats]));
-  check('Offline-licence capability of this browser checked', typeof d.persistentLicense === 'boolean', String(d.persistentLicense));
+  check('Offline-licence check skipped for ClearKey (only Widevine is probed, with a robustness level)', d.persistentLicense === null, String(d.persistentLicense));
   check('Resolution from the playing video', it?.width === 1280 && it?.height === 720, `${it?.width}x${it?.height}`);
   const p = await panel(tabId);
   const r = await p.evaluate(([t, m]) => chrome.runtime.sendMessage({ type: 'download', tabId: t, mediaId: m }), [tabId, it?.id]);

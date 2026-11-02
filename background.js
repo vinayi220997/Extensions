@@ -307,7 +307,12 @@ function applyEme(st, frameId, info, tab, frameUrl) {
   all.formats = [...new Set(Object.values(st.eme).flatMap((e) => e.formats || []))];
   all.codecs = [...new Set(Object.values(st.eme).flatMap((e) => e.codecs || []))];
   const drmItems = Object.values(st.items).filter((it) => it.drm);
-  for (const it of drmItems) if (it.kind !== 'drm') it.drmInfo = mergeDrm(it.manifestDrm, all);
+  const vid = info.video || {};
+  for (const it of drmItems) {
+    if (it.kind === 'drm') continue;
+    it.drmInfo = mergeDrm(it.manifestDrm, all);
+    if (!it.width && +vid.width) Object.assign(it, { width: +vid.width, height: +vid.height || 0, duration: it.duration || +vid.duration || 0 });
+  }
   const realStreams = drmItems.filter((it) => it.kind !== 'drm');
   const id = `drm_${frameId}`;
   if (realStreams.length) { delete st.items[id]; return; }

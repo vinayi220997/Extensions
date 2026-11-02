@@ -291,7 +291,6 @@
     if (info.video?.poster) info.video.poster = isHttp(abs(info.video.poster)) ? abs(info.video.poster) : '';
     chrome.runtime.sendMessage({ type: 'eme-info', info, pageUrl: location.href }).catch(() => {});
   });
-  document.dispatchEvent(new CustomEvent('vidpull:eme-pull'));
 
   // ----- player probe (main world) → items -----
   document.addEventListener('vidpull:probe', (e) => {
@@ -362,4 +361,6 @@
     }
     return false;
   });
+  // Ask the main-world observer to replay what it saw before this script started (EME, AJAX finds).
+  document.dispatchEvent(new CustomEvent('vidpull:eme-pull'));
 })();
