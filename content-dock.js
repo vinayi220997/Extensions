@@ -34,8 +34,14 @@
     }
     :host([data-dark="true"]) .panel { background: #111614; border-left-color: rgba(255,255,255,.12); }
     :host([data-anim="off"]) .panel, :host([data-resizing="true"]) .panel { transition: none; }
-    :host([data-mode="autohide"]) .panel { transform: translateX(calc(100% + 12px)); box-shadow: -10px 0 32px rgba(0,0,0,.28); }
-    :host([data-mode="autohide"][data-expanded="true"]) .panel { transform: translateX(0); }
+    :host([data-mode="autohide"]) .panel {
+      transform: translateX(calc(100% + 40px)); box-shadow: none; visibility: hidden;
+      transition: transform .22s ease, width .22s ease, box-shadow .22s, visibility 0s linear .22s;
+    }
+    :host([data-mode="autohide"][data-expanded="true"]) .panel {
+      transform: translateX(0); box-shadow: -10px 0 32px rgba(0,0,0,.28); visibility: visible;
+      transition: transform .22s ease, width .22s ease, box-shadow .22s, visibility 0s;
+    }
     iframe { border: 0; flex: 1; width: 100%; height: 100%; display: block; color-scheme: normal; }
     :host([data-resizing="true"]) iframe { pointer-events: none; }
     .resizer {
