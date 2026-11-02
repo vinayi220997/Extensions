@@ -24,6 +24,31 @@ http.createServer((req, res) => {
     req.url = '/media/big.mp4';
     url.pathname = '/media/big.mp4';
   }
+  // Throttled routes so downloads can be paused in tests.
+  if (url.pathname === '/slow/big.mp4') {
+    const f = path.join(ROOT, 'media/big.mp4');
+    const size = fs.statSync(f).size;
+    res.writeHead(200, { 'content-type': 'video/mp4', 'content-length': size, 'accept-ranges': 'bytes' });
+    const data = fs.readFileSync(f);
+    let off = 0;
+    const tick = () => {
+      if (res.destroyed) return;
+      if (off >= size) return res.end();
+      const chunk = data.subarray(off, off + 64 * 1024);
+      off += chunk.length;
+      if (res.write(chunk)) setTimeout(tick, 120); else res.once('drain', () => setTimeout(tick, 120));
+    };
+    tick();
+    return;
+  }
+  let sm;
+  if ((sm = /^\/slowhls\/(360(?:_\d+\.ts|\.m3u8))$/.exec(url.pathname))) {
+    const f = path.join(ROOT, 'media/hls', sm[1]);
+    return setTimeout(() => {
+      res.writeHead(200, { 'content-type': sm[1].endsWith('.ts') ? 'video/mp2t' : 'application/vnd.apple.mpegurl' });
+      fs.createReadStream(f).pipe(res);
+    }, sm[1].endsWith('.ts') ? 900 : 0);
+  }
   // Extension-less API endpoint that serves a video (only a rule addon can recognise it).
   if (url.pathname === '/api/media/7/stream') {
     const f = path.join(ROOT, 'media/big.mp4');

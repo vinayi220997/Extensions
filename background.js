@@ -1183,6 +1183,12 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   if (active) downloadBest(active, null).catch((e) => notify('Cannot download', e.message));
 });
 
+async function floatToken() {
+  let { floatToken: t } = await chrome.storage.session.get('floatToken');
+  if (!t) { t = crypto.randomUUID(); await chrome.storage.session.set({ floatToken: t }); }
+  return t;
+}
+
 // ---------------------------------------------------------------------------
 // Panels: popup / sidebar / separate window
 // ---------------------------------------------------------------------------
@@ -1569,6 +1575,16 @@ async function handleMessage(msg, sender) {
     case 'float-hello':
       if (sender.tab?.id >= 0) updateBadge(sender.tab.id);
       return null;
+    // The floating panel is the only VidSnag page allowed inside a web page. Our content script
+    // (isolated world) gets a per-session secret and passes it to the frame, which checks it here,
+    // so a website can't embed the VidSnag UI by itself.
+    case 'float-token': {
+      if (!sender.tab || sender.frameId !== 0 || !/^https?:/.test(sender.url || '') || sender.id !== chrome.runtime.id) throw new Error('Not allowed');
+      return floatToken();
+    }
+    case 'check-float-token':
+      if (sender.tab && /^https?:/.test(sender.url || '')) throw new Error('Not allowed'); // must come from an extension page
+      return !!msg.token && msg.token === (await floatToken());
     case 'get-tab': {
       const st = await readTab(msg.tabId);
       return { ...st, items: Object.values(st.items).sort((a, b) => a.detectedAt - b.detectedAt) };
@@ -1693,6 +1709,7 @@ async function handleMessage(msg, sender) {
         if (!it) return;
         if (!it.duration && Number(msg.duration) > 0 && isFinite(msg.duration)) it.duration = Number(msg.duration);
         if (!it.width && Number(msg.width) > 0) { it.width = Number(msg.width); it.height = Number(msg.height) || 0; }
+        if (!it.size && Number(msg.size) > 0) it.size = Number(msg.size);
         if ((it.kind === 'file') && it.variants[0]) Object.assign(it.variants[0], variantForFile(it));
         it.metaProbed = true;
       });

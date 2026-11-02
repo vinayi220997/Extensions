@@ -214,17 +214,34 @@ async function setPanelMode(mode) {
   }, 700);
 }
 
-async function pinBack() {
+function pinBack() {
   const target = ctx.settings.lastPinnedMode || 'max';
-  try {
-    await chrome.sidePanel.open({ windowId: ctx.tab?.windowId ?? (await chrome.windows.getCurrent()).id });
-  } catch {
-    await send({ type: 'open-window' }).catch(() => {}); // side panel not available here: use the window
-  }
-  await saveSettings({ sidebarMode: target });
+  // sidePanel.open must be called synchronously inside the click (user gesture).
+  let opening;
+  try { opening = chrome.sidePanel.open({ windowId: ctx.tab?.windowId }); } catch (e) { opening = Promise.reject(e); }
+  const saved = saveSettings({ sidebarMode: target });
+  Promise.race([opening, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))])
+    .catch(async () => { await saved; send({ type: 'open-window' }).catch(() => {}); }); // side panel unavailable: use the window
+}
+
+// Refuse to run inside a web page, except as the floating panel opened by VidSnag's own content
+// script (verified with a per-session secret). Stops other sites from framing the VidSnag UI.
+async function allowedToRun() {
+  let framed = false;
+  try { framed = window.top !== window && window.top.location.origin !== location.origin; } catch { framed = true; }
+  if (!framed) return true;
+  if (ctx.mode !== 'float') return false;
+  const token = new URLSearchParams(location.hash.slice(1)).get('t') || '';
+  window.history.replaceState(null, '', location.pathname + location.search); // don't leave the secret in the URL
+  try { return await send({ type: 'check-float-token', token }); } catch { return false; }
 }
 
 async function init() {
+  if (!(await allowedToRun())) {
+    document.body.replaceChildren();
+    document.body.textContent = 'VidSnag can only be opened from its own button or panel.';
+    return;
+  }
   document.body.dataset.mode = ctx.mode;
   applySettings(await getSettings());
   ctx.siteRules = await getSiteRules();

@@ -98,11 +98,14 @@
     els.panel.style.top = `${top}px`;
   }
 
-  function expand() {
+  async function expand() {
     if (!host || expanded) return;
     if (!els.frame) {
+      let token = '';
+      try { token = (await chrome.runtime.sendMessage({ type: 'float-token' }))?.result || ''; } catch { /* extension reloaded */ }
+      if (!host || els.frame) return;
       const f = document.createElement('iframe');
-      f.src = chrome.runtime.getURL('popup/popup.html?mode=float');
+      f.src = chrome.runtime.getURL(`popup/popup.html?mode=float#t=${encodeURIComponent(token)}`);
       f.title = 'VidSnag';
       f.allow = 'clipboard-write';
       els.panel.append(f);

@@ -54,14 +54,18 @@ export function onStorage(changes, area) {
     setState(changes[`tab:${ctx.tab.id}`].newValue || {});
     render();
   }
-  if (area === 'session' && changes.jobs) onJobs();
+  if (area === 'session' && changes.jobs) {
+    // Use the new job list directly (the Downloads view may not have processed this change yet).
+    ctx.jobs = Object.values(changes.jobs.newValue || {}).sort((a, b) => b.createdAt - a.createdAt);
+    onJobs();
+  }
 }
 
 // Jobs changed: re-render when a media item's download status changes, otherwise just move the
 // progress rings/labels in place (cheap, keeps hover previews and focus intact).
 export function onJobs() {
   if (!items.length) return;
-  const sig = items.map((i) => statusOf(i)).join();
+  const sig = jobSig();
   if (sig !== jobSignature) { jobSignature = sig; render(true); return; }
   for (const el of document.querySelectorAll('#mediaList [data-progress-for]')) {
     const item = items.find((i) => i.id === el.dataset.progressFor);
@@ -74,6 +78,8 @@ export function onJobs() {
   }
 }
 let jobSignature = '';
+// Exact job status per item (queued → downloading → paused …) so buttons switch at the right time.
+const jobSig = () => items.map((i) => `${i.id}:${jobFor(i)?.status || ''}`).join();
 
 function updateViewButton() {
   const grid = ctx.settings?.viewMode === 'grid';
@@ -230,7 +236,7 @@ function codecLabel(codecs) {
 const probing = new Set();
 function probeMissingMeta() {
   if (!ctx.tab) return;
-  const todo = items.filter((i) => i.kind === 'file' && !i.duration && !i.metaProbed && !probing.has(i.id) && /^https?:/.test(i.url));
+  const todo = items.filter((i) => i.kind === 'file' && (!i.duration || !i.size) && !i.metaProbed && !probing.has(i.id) && /^https?:/.test(i.url));
   for (const item of todo) {
     if (probing.size >= 2) break;
     probing.add(item.id);
@@ -238,15 +244,32 @@ function probeMissingMeta() {
     v.preload = 'metadata';
     v.muted = true;
     let done = false;
+    let timer = null;
     const finish = (meta) => {
       if (done) return;
       done = true;
       clearTimeout(timer);
       v.removeAttribute('src');
       v.load();
-      send({ type: 'set-media-meta', tabId: ctx.tab.id, mediaId: item.id, ...meta }).catch(() => {}).finally(() => { probing.delete(item.id); probeMissingMeta(); });
+      sizePromise.then((size) => send({ type: 'set-media-meta', tabId: ctx.tab.id, mediaId: item.id, ...meta, size }))
+        .catch(() => {}).finally(() => { probing.delete(item.id); probeMissingMeta(); });
     };
-    const timer = setTimeout(() => finish({}), 10000);
+    // File size from the server (HEAD, or a 1-byte range request when HEAD isn't allowed).
+    const sizePromise = item.size ? Promise.resolve(0) : (async () => {
+      try {
+        const r = await fetch(item.url, { method: 'HEAD', credentials: 'include' });
+        const n = Number(r.headers.get('content-length'));
+        if (r.ok && n > 0) return n;
+      } catch { /* fall through */ }
+      try {
+        const r = await fetch(item.url, { headers: { Range: 'bytes=0-0' }, credentials: 'include' });
+        const m = /\/(\d+)\s*$/.exec(r.headers.get('content-range') || '');
+        try { await r.body?.cancel(); } catch { /* ignore */ }
+        return m ? Number(m[1]) : 0;
+      } catch { return 0; }
+    })();
+    if (item.duration) { finish({}); continue; } // only the size was missing
+    timer = setTimeout(() => finish({}), 10000);
     v.addEventListener('loadedmetadata', () => finish({ duration: v.duration, width: v.videoWidth, height: v.videoHeight }));
     v.addEventListener('error', () => finish({}));
     v.src = item.url;
@@ -263,7 +286,7 @@ export function render(force = false) {
   // Don't rebuild while the user has a quality dropdown open.
   if (!force && list.contains(document.activeElement) && document.activeElement.tagName === 'SELECT') return;
   signature = sig;
-  jobSignature = items.map((i) => statusOf(i)).join();
+  jobSignature = jobSig();
   renderFilters();
   renderNotices();
   list.classList.toggle('mini', ctx.compact);
