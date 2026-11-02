@@ -1681,3 +1681,6 @@ chrome.runtime.onStartup.addListener(() => {
   if (stale.length) await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: stale }).catch(() => {});
   pumpQueue();
 })();
+
+// Used by the automated test-suite (native context menus can't be clicked in headless Chrome).
+globalThis.__vidsnag = { handleMenuClick, downloadBest, applyPanelBehavior, openPanelWindow };

@@ -247,7 +247,8 @@
     timer = null;
     const { items, notices } = collect();
     const top = window === window.top;
-    const thumb = top ? pageThumb() : '';
+    // Page thumbnail: player poster / og:image, else the first poster any detector found.
+    const thumb = top ? (pageThumb() || (items.find((i) => i.poster && isHttp(i.poster)) || {}).poster || '') : '';
     const sel = top ? selectorText() : '';
     const signature = JSON.stringify([thumb, sel, notices, items.map((i) => [i.url, i.width, i.height, Math.round(i.duration || 0), i.size])]);
     if (!force && signature === lastSignature) return;

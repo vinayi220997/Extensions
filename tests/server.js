@@ -8,9 +8,28 @@ let START = 0;
 const LIVE_DIR = path.join(ROOT, 'media/live');
 const LIVE_SEGS = fs.readdirSync(LIVE_DIR).filter((f) => /^l_\d+\.ts$/.test(f)).sort();
 const log = [];
+let TOKEN = 'tok1';
 http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   log.push({ path: url.pathname, referer: req.headers.referer || '', origin: req.headers.origin || '' });
+  // Expiring links: /token/<t>/big.mp4 only works for the current token; /__rotate issues a new one.
+  if (url.pathname === '/__rotate') { TOKEN = Math.random().toString(36).slice(2, 10); res.writeHead(200); return res.end(TOKEN); }
+  if (url.pathname === '/page-token.html') {
+    res.writeHead(200, { 'content-type': 'text/html' });
+    return res.end(`<!doctype html><html><head><meta charset="utf-8"><title>Token test</title></head><body><h1>Expiring video</h1><video controls src="/token/${TOKEN}/big.mp4" preload="metadata"></video></body></html>`);
+  }
+  let tm;
+  if ((tm = /^\/token\/([a-z0-9]+)\/big\.mp4$/.exec(url.pathname))) {
+    if (tm[1] !== TOKEN) { res.writeHead(403); return res.end('expired'); }
+    req.url = '/media/big.mp4';
+    url.pathname = '/media/big.mp4';
+  }
+  // Extension-less API endpoint that serves a video (only a rule addon can recognise it).
+  if (url.pathname === '/api/media/7/stream') {
+    const f = path.join(ROOT, 'media/big.mp4');
+    res.writeHead(200, { 'content-type': 'application/octet-stream', 'content-length': fs.statSync(f).size });
+    return fs.createReadStream(f).pipe(res);
+  }
   if (url.pathname === '/__log') { res.writeHead(200, { 'content-type': 'application/json' }); return res.end(JSON.stringify(log)); }
   if (url.pathname === '/live/live.m3u8') {
     if (!START || Date.now() - START > 50000) START = Date.now();

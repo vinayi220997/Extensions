@@ -19,4 +19,8 @@ mkdir -p protected && cp hls/360.m3u8 hls/360_*.ts protected/
 sed -E 's#^(360_[0-9]+\.ts)$#http://127.0.0.1:8765/media/protected/\1#' protected/360.m3u8 > xhost.m3u8
 # 60 s source for the simulated live stream (continuous timestamps)
 mkdir -p live && ffmpeg -loglevel error -y $SRC -t 60 -c:v libx264 -b:v 800k -pix_fmt yuv420p -c:a aac -g 50 -keyint_min 50 -sc_threshold 0 -f hls -hls_time 2 -hls_list_size 0 -hls_segment_filename "live/l_%03d.ts" live/all.m3u8
+# HLS with a separate audio rendition (video-only variant + audio-only rendition)
+mkdir -p alt && ffmpeg -loglevel error -y -i big.mp4 -an -c:v copy -hls_time 2 -hls_playlist_type vod -hls_segment_filename "alt/v_%03d.ts" alt/video.m3u8
+ffmpeg -loglevel error -y -i big.mp4 -vn -c:a copy -hls_time 2 -hls_playlist_type vod -hls_segment_filename "alt/a_%03d.ts" alt/audio.m3u8
+printf '#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="aud",NAME="English",LANGUAGE="en",DEFAULT=YES,AUTOSELECT=YES,URI="audio.m3u8"\n#EXT-X-STREAM-INF:BANDWIDTH=1600000,RESOLUTION=1280x720,CODECS="avc1.64001f,mp4a.40.2",AUDIO="aud"\nvideo.m3u8\n' > alt/master.m3u8
 echo "Fixtures ready in $(pwd)"

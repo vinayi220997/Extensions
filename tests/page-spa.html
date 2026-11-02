@@ -1,0 +1,9 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SPA one</title></head><body><h1>SPA</h1>
+<div id="app"><video src="/media/big.mp4" preload="metadata" muted></video></div>
+<script>
+window.goNext = () => {
+  history.pushState({}, '', '/page-spa.html?v=2');
+  document.title = 'SPA two';
+  document.getElementById('app').innerHTML = '<video src="/media/clip.webm" preload="metadata" muted></video>';
+};
+</script></body></html>
