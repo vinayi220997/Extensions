@@ -1,0 +1,129 @@
+{
+  "manifest_version": 3,
+  "name": "VidPull – Video Downloader",
+  "short_name": "VidPull",
+  "version": "3.1.1",
+  "description": "VidPull finds videos and audio on any page (MP4, WebM, HLS, DASH, players, blob videos) and downloads them in the quality and format you choose.",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "tabs",
+    "downloads",
+    "webRequest",
+    "webNavigation",
+    "storage",
+    "unlimitedStorage",
+    "offscreen",
+    "contextMenus",
+    "notifications",
+    "declarativeNetRequestWithHostAccess",
+    "downloads.open",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-eme.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-main.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": true,
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-dock.js"
+      ],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ],
+  "action": {
+    "default_title": "VidPull",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "options_page": "options/options.html",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+V"
+      },
+      "description": "Open VidPull"
+    },
+    "download-best": {
+      "suggested_key": {
+        "default": "Alt+Shift+D"
+      },
+      "description": "Download the best detected media on this tab"
+    },
+    "open-sidebar": {
+      "description": "Open VidPull in the sidebar"
+    }
+  },
+  "optional_permissions": [
+    "userScripts"
+  ],
+  "side_panel": {
+    "default_path": "popup/popup.html?mode=sidebar"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "popup/popup.html",
+        "icons/icon32.png"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ]
+}

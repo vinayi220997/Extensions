@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Players and links</title>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoObject","name":"JSON-LD clip","contentUrl":"/media/fmp4/index.m3u8","thumbnailUrl":"/media/poster.jpg","duration":"PT12S"}</script>
+</head><body><h1 class="video-title">My Smart Title</h1>
+<a href="/media/clip.webm">Download the WebM clip</a>
+<div class="tile" data-video="/media/dash/manifest.mpd"></div>
+<div id="host"></div>
+<script>
+// Fake JW Player API (what the main-world probe reads)
+window.jwplayer = (i) => (i === 0 || i === undefined) ? { getPlaylist: () => [{ title: 'JW Big Buck', image: '/media/poster.jpg', sources: [{ file: '/media/hls/master.m3u8', type: 'hls', label: 'Auto' }] }] } : {};
+// A player inside an open shadow root
+const root = document.getElementById('host').attachShadow({ mode: 'open' });
+root.innerHTML = '<video src="/media/big.mp4" preload="metadata" muted></video>';
+</script></body></html>
