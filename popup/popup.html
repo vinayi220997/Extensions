@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>VidSnag</title>
   <link rel="stylesheet" href="../ui/theme.css">
   <link rel="stylesheet" href="popup.css">
@@ -12,27 +13,52 @@
       <img src="../icons/icon32.png" alt="" width="22" height="22">
       <span>VidSnag</span>
     </div>
-    <button class="icon-btn" id="openOptions" title="Settings" aria-label="Settings"></button>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnSavePage" title="Save this page to Saved links" aria-label="Save this page"></button>
+      <button class="icon-btn" id="btnPanel" title="Sidebar, window or pin" aria-label="Panel options" aria-haspopup="menu"></button>
+      <button class="icon-btn" id="btnHelp" title="Help" aria-label="Help"></button>
+      <button class="icon-btn" id="btnOptions" title="Settings" aria-label="Settings"></button>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist">
     <button role="tab" data-view="media" class="active">Media <span class="count" id="mediaCount"></span></button>
     <button role="tab" data-view="jobs">Downloads <span class="count" id="jobsCount"></span></button>
+    <button role="tab" data-view="library">Saved <span class="count muted-count" id="libraryCount"></span></button>
     <button role="tab" data-view="history">History</button>
   </nav>
 
+  <div id="banner" class="banner" hidden></div>
+
   <main>
     <section id="view-media" class="view active">
+      <div class="toolbar">
+        <div class="chips" id="mediaFilters" role="group" aria-label="Filter media"></div>
+        <div class="toolbar-row">
+          <input type="search" id="mediaSearch" placeholder="Search media" aria-label="Search media">
+          <button class="icon-btn" id="btnRefreshList" title="Refresh list (rescan page)" aria-label="Refresh list"></button>
+          <button class="icon-btn" id="btnViewMode" title="Grid view" aria-label="Toggle grid view"></button>
+          <button class="icon-btn" id="btnMediaMore" title="More" aria-label="More actions" aria-haspopup="menu"></button>
+        </div>
+      </div>
+      <div id="notices"></div>
       <div id="mediaList" class="list"></div>
       <div id="mediaEmpty" class="empty" hidden>
         <div class="empty-art" aria-hidden="true"></div>
         <h2>No media detected yet</h2>
         <p>Start playing the video on this page — VidSnag picks up streams as soon as the player loads them.</p>
-        <button class="btn" id="rescan">Scan page again</button>
+        <div class="empty-actions">
+          <button class="btn" id="rescan">Scan page again</button>
+          <button class="btn" id="reloadPage">Reload page</button>
+        </div>
+      </div>
+      <div id="mediaNoMatch" class="empty" hidden>
+        <h2>Nothing matches</h2>
+        <p>Try another filter or clear the search.</p>
       </div>
       <div id="mediaUnsupported" class="empty" hidden>
         <h2>Nothing to scan here</h2>
-        <p>VidSnag works on regular web pages (http/https).</p>
+        <p>VidSnag works on regular web pages (http/https). Switch to a tab with a video.</p>
       </div>
     </section>
 
@@ -44,15 +70,42 @@
       </div>
     </section>
 
+    <section id="view-library" class="view">
+      <div class="toolbar">
+        <div class="segmented" role="group" aria-label="Saved list">
+          <button data-type="video" class="active">Videos <span id="libVideoCount" class="seg-count"></span></button>
+          <button data-type="page">Pages <span id="libPageCount" class="seg-count"></span></button>
+        </div>
+        <div class="toolbar-row">
+          <select id="libCategory" aria-label="Category"></select>
+          <input type="search" id="libSearch" placeholder="Search saved" aria-label="Search saved links">
+          <button class="icon-btn" id="btnLibMore" title="More" aria-label="More actions" aria-haspopup="menu"></button>
+        </div>
+      </div>
+      <div id="libList" class="list"></div>
+      <div id="libEmpty" class="empty" hidden>
+        <h2 id="libEmptyTitle">Nothing saved yet</h2>
+        <p id="libEmptyText">Use “Save to list” on a detected video, or the bookmark button above to save this page.</p>
+      </div>
+    </section>
+
     <section id="view-history" class="view">
       <div class="toolbar">
-        <input type="search" id="historySearch" placeholder="Search history" aria-label="Search history">
+        <div class="toolbar-row">
+          <input type="search" id="historySearch" placeholder="Search history" aria-label="Search history">
+        </div>
       </div>
       <div id="historyList" class="list"></div>
       <div id="historyEmpty" class="empty" hidden>
         <h2>History is empty</h2>
         <p id="historyEmptyText">Finished downloads are listed here.</p>
       </div>
+    </section>
+
+    <section id="view-help" class="view"></section>
+
+    <section id="view-settings" class="view">
+      <iframe id="settingsFrame" title="Settings"></iframe>
     </section>
   </main>
 
@@ -62,6 +115,6 @@
   </footer>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="popup.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

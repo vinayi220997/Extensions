@@ -2,6 +2,7 @@
 // MPEG-TS → MP4 with mux.js, and hands a blob: URL back to the service worker.
 import { parseM3U8, ivFromHex, ivFromSequence } from '../lib/hls.js';
 import { parseMPD } from '../lib/dash.js';
+import { mergeFragmented, extractAudio } from '../lib/mp4.js';
 
 const active = new Map(); // jobId → { controller, stopRequested }
 const MAX_LIVE_SECONDS = 4 * 3600;
@@ -19,6 +20,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const j = active.get(msg.jobId);
     if (j) j.stopRequested = true;
     sendResponse({ ok: true });
+  } else if (msg.type === 'copy') {
+    // Clipboard writes from the service worker (right-click "Copy media link").
+    const ta = document.createElement('textarea');
+    ta.value = msg.text || '';
+    document.body.append(ta);
+    ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch { ok = false; }
+    ta.remove();
+    sendResponse({ ok });
   } else if (msg.type === 'revoke') {
     try { URL.revokeObjectURL(msg.url); } catch { /* ignore */ }
     sendResponse({ ok: true });
@@ -91,7 +102,7 @@ function byteRange(br) {
 // ---------------------------------------------------------------------------
 // Output sinks
 // ---------------------------------------------------------------------------
-// Raw concatenation (fMP4, DASH, or original MPEG-TS).
+// Raw concatenation (fMP4, DASH, packed audio, or original MPEG-TS).
 function rawSink(type) {
   const parts = [];
   let size = 0;
@@ -102,35 +113,44 @@ function rawSink(type) {
   };
 }
 
-// MPEG-TS → fragmented MP4 using mux.js; keeps the raw TS as a fallback.
-function transmuxSink() {
+// MPEG-TS / ADTS-AAC → fragmented MP4 using mux.js.
+//  audioOnly=false: one fMP4 with all tracks; falls back to the raw .ts when conversion fails.
+//  audioOnly=true:  keeps only the audio track (.m4a); no fallback.
+function transmuxSink({ audioOnly = false } = {}) {
   const raw = rawSink('video/mp2t');
   const out = [];
   let outSize = 0;
   let initWritten = false;
   let failed = typeof muxjs === 'undefined';
   let transmuxer = null;
+  let inSize = 0;
   if (!failed) {
-    transmuxer = new muxjs.mp4.Transmuxer({ remux: true, keepOriginalTimestamps: false });
+    transmuxer = new muxjs.mp4.Transmuxer({ remux: !audioOnly, keepOriginalTimestamps: false });
     transmuxer.on('data', (seg) => {
+      if (audioOnly && seg.type !== 'audio') return;
       if (!initWritten && seg.initSegment?.byteLength) { out.push(new Blob([seg.initSegment])); outSize += seg.initSegment.byteLength; initWritten = true; }
       if (seg.data?.byteLength) { out.push(new Blob([seg.data])); outSize += seg.data.byteLength; }
     });
   }
   return {
     push(u8) {
-      raw.push(u8);
+      inSize += u8.byteLength;
+      if (!audioOnly) raw.push(u8);
       if (failed) return;
       try { transmuxer.push(u8); transmuxer.flush(); } catch (e) { console.warn('transmux failed', e); failed = true; }
     },
-    get size() { return raw.size; },
+    get size() { return inSize; },
     finish() {
+      if (audioOnly) {
+        if (failed || !initWritten) throw new Error('No audio track could be extracted from this stream.');
+        return { blob: new Blob(out, { type: 'audio/mp4' }), ext: 'm4a', note: '', fmp4: true };
+      }
       // Sanity check: a successful remux keeps roughly the same payload size.
       if (!failed && initWritten && outSize > raw.size * 0.5) {
-        return { blob: new Blob(out, { type: 'video/mp4' }), ext: 'mp4', note: '' };
+        return { blob: new Blob(out, { type: 'video/mp4' }), ext: 'mp4', note: '', fmp4: true };
       }
       const r = raw.finish();
-      return { blob: r.blob, ext: 'ts', note: 'Saved as .ts (could not convert this stream to MP4)' };
+      return { blob: r.blob, ext: 'ts', note: 'Saved as .ts (could not convert this stream to MP4)', fmp4: false };
     }
   };
 }
@@ -167,14 +187,28 @@ async function runPool(count, concurrency, worker, signal) {
   await Promise.all(runners);
 }
 
+// Progress reporter. `part(from, to)` returns a reporter whose 0..1 progress maps into [from, to]
+// so multi-track jobs (video + audio) show one smooth bar.
 function progressReporter(jobId) {
   let last = 0;
-  return (data, force = false) => {
+  let bytesBefore = 0;
+  const base = (data, force = false) => {
     const now = Date.now();
     if (!force && now - last < 400) return;
     last = now;
     send('progress', { jobId, ...data });
   };
+  base.part = (from, to, label = '') => {
+    const r = (data, force) => base({
+      ...data,
+      progress: from + (to - from) * (data.progress || 0),
+      bytes: bytesBefore + (data.bytes || 0),
+      note: data.note || label
+    }, force);
+    r.done = (bytes) => { bytesBefore += bytes || 0; };
+    return r;
+  };
+  return base;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,14 +232,19 @@ async function decryptSegment(data, key, sequence, getKey) {
 
 // ---------------------------------------------------------------------------
 // Jobs
+//   source.kind   'hls' | 'dash' | 'file'
+//   source.output 'auto' | 'video' (no merge) | 'audio' | 'ts'
+//   source.audio  { url } (HLS alternate audio) or { repId } (DASH) → merged when output is 'auto'
 // ---------------------------------------------------------------------------
 async function runJob(job, options) {
   const state = { controller: new AbortController(), stopRequested: false, cancelled: false };
   active.set(job.id, state);
   try {
-    const result = job.source.kind === 'dash'
-      ? await runDash(job, options, state)
-      : await runHls(job, options, state);
+    const src = job.source;
+    let result;
+    if (src.kind === 'dash') result = await runDash(job, options, state);
+    else if (src.kind === 'file') result = await runFileAudio(job, state);
+    else result = await runHls(job, options, state);
     if (state.cancelled) return;
     const url = URL.createObjectURL(result.blob);
     await send('finished', { jobId: job.id, url, ext: result.ext, size: result.blob.size, note: result.note || '' });
@@ -232,22 +271,28 @@ async function loadMediaPlaylist(url, signal) {
   return { pl, url: finalUrl };
 }
 
-function makeHlsSink(pl, options, audioOnly) {
-  if (pl.fmp4) return { sink: rawSink(audioOnly ? 'audio/mp4' : 'video/mp4'), ext: audioOnly ? 'm4a' : 'mp4' };
-  const firstExt = (pl.segments[0]?.url.match(/\.(aac|mp3|ac3)(?:\?|$)/i) || [])[1];
-  if (firstExt) return { sink: rawSink(`audio/${firstExt}`), ext: firstExt.toLowerCase() };
-  if (options.hlsOutput === 'ts') return { sink: rawSink('video/mp2t'), ext: 'ts' };
+// mode: 'video' (user's HLS output setting), 'ts', 'audio' (audio only), 'fmp4' (for merging)
+function makeHlsSink(pl, mode, options) {
+  const packed = (pl.segments[0]?.url.match(/\.(aac|mp3|ac3|ec3)(?:\?|$)/i) || [])[1];
+  if (pl.fmp4) {
+    return { sink: rawSink(mode === 'audio' ? 'audio/mp4' : 'video/mp4'), ext: mode === 'audio' ? 'm4a' : 'mp4', fmp4: true };
+  }
+  if (packed) {
+    if (/^aac$/i.test(packed) && (mode === 'fmp4' || mode === 'audio')) return { sink: transmuxSink({ audioOnly: true }), ext: 'm4a' };
+    return { sink: rawSink(`audio/${packed}`), ext: packed.toLowerCase(), fmp4: false };
+  }
+  if (mode === 'audio') return { sink: transmuxSink({ audioOnly: true }), ext: 'm4a' };
+  if (mode === 'ts' || (mode === 'video' && options.hlsOutput === 'ts')) return { sink: rawSink('video/mp2t'), ext: 'ts', fmp4: false };
   return { sink: transmuxSink(), ext: 'mp4' };
 }
 
-async function runHls(job, options, state) {
+async function hlsTrack(job, url0, mode, options, state, report) {
   const { signal } = state.controller;
-  const report = progressReporter(job.id);
-  const { pl, url } = await loadMediaPlaylist(job.source.url, signal);
+  const { pl, url } = await loadMediaPlaylist(url0, signal);
   if (pl.drm) throw new Error('This stream is DRM-protected and cannot be downloaded.');
   if (!pl.segments.length) throw new Error('The playlist has no segments');
   await announceHosts(job.id, [url, ...pl.segments.flatMap((x) => [x.url, x.key?.uri, x.map?.url]).filter(Boolean)]);
-  const { sink, ext } = makeHlsSink(pl, options, job.source.audioOnly);
+  const { sink, ext } = makeHlsSink(pl, mode, options);
   const getKey = keyCache(signal);
 
   const fetchSegment = async (seg) => {
@@ -262,7 +307,7 @@ async function runHls(job, options, state) {
     return initCache.get(k);
   };
 
-  if (pl.live) return recordLive({ job, url, pl, sink, ext, state, fetchSegment, fetchInit, report });
+  if (pl.live) return { ...(await recordLive({ job, url, pl, sink, ext, state, fetchSegment, fetchInit, report })), live: true };
 
   const segs = pl.segments;
   const feed = orderedFeeder(sink);
@@ -286,9 +331,50 @@ async function runHls(job, options, state) {
     report({ progress: done / segs.length, segmentsDone: done, segmentsTotal: segs.length, bytes: sink.size });
   }, signal);
 
-  report({ progress: 1, segmentsDone: done, segmentsTotal: segs.length, bytes: sink.size, finalizing: true }, true);
   const res = sink.finish();
-  return { blob: res.blob, ext: res.ext || ext, note: [res.note, failed ? `${failed} segment(s) skipped` : ''].filter(Boolean).join(' · ') };
+  report.done?.(sink.size);
+  return {
+    blob: res.blob,
+    ext: res.ext || ext,
+    fmp4: res.fmp4 ?? pl.fmp4,
+    note: [res.note, failed ? `${failed} segment(s) skipped` : ''].filter(Boolean).join(' · ')
+  };
+}
+
+async function runHls(job, options, state) {
+  const src = job.source;
+  const report = progressReporter(job.id);
+  const output = src.output || 'auto';
+  if (output === 'audio') {
+    const r = await hlsTrack(job, src.url, 'audio', options, state, report.part(0, 1));
+    report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+    return r;
+  }
+  if (output === 'auto' && src.audio && src.audio.url) {
+    // Video rendition without sound + separate audio rendition → merge into one MP4.
+    const v = await hlsTrack(job, src.url, 'fmp4', options, state, report.part(0, 0.8, 'Video track'));
+    if (v.live) return v;
+    const a = await hlsTrack(job, src.audio.url, 'fmp4', options, state, report.part(0.8, 0.98, 'Audio track'));
+    report({ progress: 1, bytes: v.blob.size + a.blob.size, finalizing: true, note: 'Merging audio + video' }, true);
+    return mergeTracks(v, a);
+  }
+  const mode = output === 'ts' ? 'ts' : 'video';
+  const r = await hlsTrack(job, src.url, mode, options, state, report.part(0, 1));
+  report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+  return r;
+}
+
+async function mergeTracks(v, a) {
+  if (!v.fmp4 || !a.fmp4) {
+    return { blob: v.blob, ext: v.ext, note: 'Saved the video track only (its audio format can’t be merged)' };
+  }
+  try {
+    const merged = mergeFragmented(new Uint8Array(await v.blob.arrayBuffer()), new Uint8Array(await a.blob.arrayBuffer()));
+    return { blob: new Blob([merged], { type: 'video/mp4' }), ext: 'mp4', note: 'Audio + video merged' };
+  } catch (e) {
+    console.warn('merge failed', e);
+    return { blob: v.blob, ext: v.ext, note: `Saved the video track only (merge failed: ${e.message})` };
+  }
 }
 
 async function recordLive({ job, url, pl, sink, ext, state, fetchSegment, fetchInit, report }) {
@@ -328,26 +414,16 @@ async function recordLive({ job, url, pl, sink, ext, state, fetchSegment, fetchI
   return { blob: res.blob, ext: res.ext || ext, note: `Live recording · ${Math.round(recorded)}s${res.note ? ' · ' + res.note : ''}` };
 }
 
-async function runDash(job, options, state) {
+async function dashTrack(job, rep, options, state, report) {
   const { signal } = state.controller;
-  const report = progressReporter(job.id);
-  const mpd = parseMPD(await fetchWithRetry(job.source.url, { signal, as: 'text' }), job.source.url);
-  if (mpd.drm) throw new Error('This stream is DRM-protected and cannot be downloaded.');
-  if (mpd.live) throw new Error('Live DASH streams are not supported.');
-  if (mpd.multiPeriod) throw new Error('Multi-period DASH (e.g. with ad breaks) is not supported.');
-  const reps = mpd.representations;
-  const rep = reps.find((r) => r.id === job.source.repId)
-    || [...reps].filter((r) => !r.audioOnly).sort((a, b) => b.bandwidth - a.bandwidth)[0]
-    || reps[0];
-  if (!rep) throw new Error('No representation found in the manifest');
   const type = rep.ext === 'webm' ? 'video/webm' : rep.ext === 'weba' ? 'audio/webm' : rep.audioOnly ? 'audio/mp4' : 'video/mp4';
   const sink = rawSink(type);
   const plan = rep.plan;
   await announceHosts(job.id, plan.type === 'single' ? [plan.url]
     : [typeof plan.init === 'string' ? plan.init : plan.init?.url, ...plan.segments.map((x) => x.url)].filter(Boolean));
 
-  if (rep.plan.type === 'single') {
-    const res = await fetch(rep.plan.url, { credentials: 'include', signal });
+  if (plan.type === 'single') {
+    const res = await fetch(plan.url, { credentials: 'include', signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const total = Number(res.headers.get('content-length')) || 0;
     const reader = res.body.getReader();
@@ -360,7 +436,7 @@ async function runDash(job, options, state) {
       report({ progress: total ? got / total : 0, bytes: got, total, segmentsDone: 0, segmentsTotal: 0 });
     }
   } else {
-    const { init, segments } = rep.plan;
+    const { init, segments } = plan;
     if (init) {
       const initUrl = typeof init === 'string' ? init : init.url;
       sink.push(await fetchWithRetry(initUrl, { signal, range: typeof init === 'string' ? undefined : byteRange(init.range) }));
@@ -375,11 +451,80 @@ async function runDash(job, options, state) {
       report({ progress: done / segments.length, segmentsDone: done, segmentsTotal: segments.length, bytes: sink.size });
     }, signal);
   }
-  report({ progress: 1, bytes: sink.size, finalizing: true }, true);
   const res = sink.finish();
-  return {
-    blob: res.blob,
-    ext: rep.ext,
-    note: rep.audioOnly ? 'Audio track only' : (reps.some((r) => r.audioOnly) ? 'Video track only (audio is a separate track)' : '')
-  };
+  report.done?.(sink.size);
+  return { blob: res.blob, ext: rep.ext, fmp4: !/webm|weba/.test(rep.ext) };
+}
+
+async function runDash(job, options, state) {
+  const { signal } = state.controller;
+  const src = job.source;
+  const report = progressReporter(job.id);
+  const mpd = parseMPD(await fetchWithRetry(src.url, { signal, as: 'text' }), src.url);
+  if (mpd.drm) throw new Error('This stream is DRM-protected and cannot be downloaded.');
+  if (mpd.live) throw new Error('Live DASH streams are not supported.');
+  if (mpd.multiPeriod) throw new Error('Multi-period DASH (e.g. with ad breaks) is not supported.');
+  const reps = mpd.representations;
+  const audioReps = reps.filter((r) => r.audioOnly).sort((a, b) => b.bandwidth - a.bandwidth);
+  const output = src.output || 'auto';
+
+  if (output === 'audio') {
+    const rep = reps.find((r) => r.id === src.repId && r.audioOnly) || audioReps[0];
+    if (!rep) throw new Error('This stream has no separate audio track.');
+    const r = await dashTrack(job, rep, options, state, report.part(0, 1));
+    report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+    return { ...r, note: 'Audio track' };
+  }
+  const rep = reps.find((r) => r.id === src.repId)
+    || [...reps].filter((r) => !r.audioOnly).sort((a, b) => b.bandwidth - a.bandwidth)[0]
+    || reps[0];
+  if (!rep) throw new Error('No representation found in the manifest');
+  if (rep.audioOnly) {
+    const r = await dashTrack(job, rep, options, state, report.part(0, 1));
+    report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+    return { ...r, note: 'Audio track' };
+  }
+  const audioRep = output === 'auto' && src.audio
+    ? (reps.find((r) => r.id === src.audio.repId && r.audioOnly) || audioReps.find((r) => r.ext === (rep.ext === 'webm' ? 'weba' : 'm4a')) || null)
+    : null;
+  if (audioRep) {
+    const v = await dashTrack(job, rep, options, state, report.part(0, 0.85, 'Video track'));
+    const a = await dashTrack(job, audioRep, options, state, report.part(0.85, 0.98, 'Audio track'));
+    report({ progress: 1, bytes: v.blob.size + a.blob.size, finalizing: true, note: 'Merging audio + video' }, true);
+    return mergeTracks(v, a);
+  }
+  const r = await dashTrack(job, rep, options, state, report.part(0, 1));
+  report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+  return { ...r, note: audioReps.length ? 'Video track only (audio is a separate track)' : '' };
+}
+
+// Direct MP4/MOV file → audio-only .m4a (downloads the whole file, keeps only the audio samples).
+async function runFileAudio(job, state) {
+  const { signal } = state.controller;
+  const report = progressReporter(job.id);
+  await announceHosts(job.id, [job.source.url]);
+  const res = await fetch(job.source.url, { credentials: 'include', signal });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const total = Number(res.headers.get('content-length')) || 0;
+  const reader = res.body.getReader();
+  const chunks = [];
+  let got = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    got += value.byteLength;
+    report({ progress: total ? (got / total) * 0.95 : 0, bytes: got, total, segmentsDone: 0, segmentsTotal: 0, note: 'Downloading video to extract audio' });
+  }
+  report({ progress: 0.97, bytes: got, total, finalizing: true, note: 'Extracting audio' }, true);
+  const bytes = new Uint8Array(got);
+  let o = 0;
+  for (const c of chunks) { bytes.set(c, o); o += c.byteLength; }
+  let audio;
+  try {
+    audio = extractAudio(bytes);
+  } catch (e) {
+    throw new Error(`${e.message}. Audio extraction works for MP4/M4V/MOV files.`);
+  }
+  return { blob: new Blob([audio], { type: 'audio/mp4' }), ext: 'm4a', note: 'Audio extracted' };
 }

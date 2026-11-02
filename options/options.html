@@ -2,13 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>VidSnag settings</title>
   <link rel="stylesheet" href="../ui/theme.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
   <div class="page">
-    <header>
+    <header class="page-head">
       <img src="../icons/icon48.png" alt="" width="36" height="36">
       <div>
         <h1>VidSnag settings</h1>
@@ -16,8 +17,14 @@
       </div>
     </header>
 
+    <nav class="jump" aria-label="Sections">
+      <a href="#s-format">Format</a><a href="#s-saving">Saving</a><a href="#s-detect">Detection</a>
+      <a href="#s-appearance">Appearance</a><a href="#s-behaviour">Behaviour</a><a href="#s-sites">Sites</a>
+      <a href="#s-addons">Addons</a><a href="#s-history">History</a><a href="#s-backup">Backup</a>
+    </nav>
+
     <form id="form" autocomplete="off">
-      <section>
+      <section id="s-format">
         <h2>Format &amp; quality</h2>
         <label class="row">
           <span><b>Default resolution</b><small>Pre-selected quality when a video offers several.</small></span>
@@ -47,12 +54,16 @@
             <option value="ts">Original (.ts)</option>
           </select>
         </label>
+        <label class="row switch">
+          <span><b>Merge separate audio and video</b><small>Many streams (most DASH, some HLS) send sound as its own track. VidSnag joins them into one MP4.</small></span>
+          <input type="checkbox" name="mergeAudio">
+        </label>
       </section>
 
-      <section>
+      <section id="s-saving">
         <h2>Saving files</h2>
         <label class="row">
-          <span><b>File name</b><small>Tokens: <code>{title}</code> <code>{res}</code> <code>{host}</code> <code>{date}</code> <code>{time}</code></small></span>
+          <span><b>File name</b><small>Tokens: <code>{title}</code> <code>{res}</code> <code>{host}</code> <code>{date}</code> <code>{time}</code> <code>{selector}</code></small></span>
           <input type="text" name="filenameTemplate" maxlength="120">
         </label>
         <div class="preview muted" id="namePreview"></div>
@@ -70,53 +81,165 @@
         </label>
       </section>
 
-      <section>
+      <section id="s-detect">
         <h2>Detection</h2>
         <label class="row">
           <span><b>Ignore files smaller than (KB)</b><small>Filters out ads, previews and sound effects.</small></span>
           <input type="number" name="minFileSizeKB" min="0" step="50">
         </label>
         <label class="row switch">
-          <span><b>Scan video &amp; audio tags on pages</b><small>In addition to watching network traffic.</small></span>
+          <span><b>Scan video &amp; audio tags</b><small>HTML5 players, including ones inside web components, and in-page (blob) videos.</small></span>
           <input type="checkbox" name="detectDomMedia">
+        </label>
+        <label class="row switch">
+          <span><b>Read sources from web players</b><small>JW Player, Video.js, Flowplayer, hls.js, dash.js and similar.</small></span>
+          <input type="checkbox" name="detectPlayers">
+        </label>
+        <label class="row switch">
+          <span><b>Find media links on the page</b><small>Links to video/audio files and data-* attributes holding media addresses.</small></span>
+          <input type="checkbox" name="detectLinks">
+        </label>
+        <p class="fine muted">Network detection (MP4, WebM, HLS, DASH and more) is always on.</p>
+      </section>
+
+      <section id="s-appearance">
+        <h2>Appearance</h2>
+        <div class="row">
+          <span><b>Video preview</b><small>What each card shows on the left.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Video preview">
+            <label><input type="radio" name="previewMode" value="none"><span>Icon only</span></label>
+            <label><input type="radio" name="previewMode" value="image"><span>Image</span></label>
+            <label><input type="radio" name="previewMode" value="video"><span>Short video</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Theme</b></span>
+          <div class="seg" role="radiogroup" aria-label="Theme">
+            <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+            <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+            <label><input type="radio" name="theme" value="system"><span>System</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Colour</b><small>Accent for buttons and highlights.</small></span>
+          <div class="swatches" id="swatches" role="radiogroup" aria-label="Accent colour"></div>
+        </div>
+        <div class="row">
+          <span><b>Window size</b><small>Size of the popup and the separate window.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Window size">
+            <label><input type="radio" name="windowSize" value="S"><span>S</span></label>
+            <label><input type="radio" name="windowSize" value="M"><span>M</span></label>
+            <label><input type="radio" name="windowSize" value="L"><span>L</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Text size</b></span>
+          <div class="seg" role="radiogroup" aria-label="Text size">
+            <label><input type="radio" name="textSize" value="S"><span>Small</span></label>
+            <label><input type="radio" name="textSize" value="M"><span>Medium</span></label>
+            <label><input type="radio" name="textSize" value="L"><span>Large</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Media layout</b></span>
+          <div class="seg" role="radiogroup" aria-label="Media layout">
+            <label><input type="radio" name="viewMode" value="list"><span>List</span></label>
+            <label><input type="radio" name="viewMode" value="grid"><span>Grid</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Default panel</b><small>What clicking the toolbar icon opens.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Default panel">
+            <label><input type="radio" name="defaultPanel" value="popup"><span>Popup</span></label>
+            <label><input type="radio" name="defaultPanel" value="sidebar"><span>Sidebar</span></label>
+          </div>
+        </div>
+      </section>
+
+      <section id="s-behaviour">
+        <h2>Behaviour</h2>
+        <div class="row">
+          <span><b>Open settings</b><small>From the gear button in VidSnag.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Open settings">
+            <label><input type="radio" name="settingsOpenIn" value="panel"><span>In the current window</span></label>
+            <label><input type="radio" name="settingsOpenIn" value="tab"><span>In a new tab</span></label>
+          </div>
+        </div>
+        <label class="row switch">
+          <span><b>Right-click menu</b><small>VidSnag actions when you right-click videos, links and pages.</small></span>
+          <input type="checkbox" name="contextMenu">
         </label>
         <label class="row switch">
           <span><b>Show count on the toolbar icon</b></span>
           <input type="checkbox" name="showBadge">
         </label>
         <label class="row switch">
-          <span><b>Right-click menu on videos</b></span>
-          <input type="checkbox" name="contextMenu">
-        </label>
-        <label class="row switch">
           <span><b>Desktop notifications</b><small>When a download finishes or fails.</small></span>
           <input type="checkbox" name="notifications">
         </label>
       </section>
-
-      <section>
-        <h2>History</h2>
-        <label class="row switch">
-          <span><b>Keep a download history</b></span>
-          <input type="checkbox" name="historyEnabled">
-        </label>
-        <label class="row">
-          <span><b>Forget entries after (days)</b><small>0 keeps them forever (up to 500 entries).</small></span>
-          <input type="number" name="historyDays" min="0" max="3650" step="1">
-        </label>
-        <div class="row">
-          <span><b>Stored entries</b><small id="historyInfo">–</small></span>
-          <button type="button" class="btn danger" id="clearHistory">Clear history</button>
-        </div>
-      </section>
-
-      <div class="footer">
-        <button type="button" class="btn" id="reset">Restore defaults</button>
-        <span id="saved" class="muted" role="status"></span>
-      </div>
     </form>
-    <p class="muted fine">Shortcut: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> downloads the best media on the current tab. Change it at chrome://extensions/shortcuts.</p>
+
+    <section id="s-sites">
+      <h2>Site rules</h2>
+      <p class="fine muted">Per-website defaults you set from a video’s ⋯ menu (Always download audio, Always copy link, Smart naming).</p>
+      <div id="siteRules" class="rules"></div>
+    </section>
+
+    <section id="s-addons">
+      <h2>Addons &amp; custom scripts</h2>
+      <p class="fine muted">Teach VidSnag new sites. <b>Rule addons</b> (.json) add URL patterns and CSS selectors and work right away. <b>Script addons</b> (.js) run your JavaScript on matching pages and report media with <code>VidSnag.report([...])</code>. Only install addons you trust.</p>
+      <div id="userScriptsStatus" class="callout" hidden></div>
+      <div class="row-actions">
+        <label class="btn primary file-btn"><input type="file" id="addonFile" accept=".json,.js,application/json,text/javascript" multiple hidden>Upload addon…</label>
+        <button type="button" class="btn" id="sampleRule">Sample rule addon</button>
+        <button type="button" class="btn" id="sampleScript">Sample script addon</button>
+      </div>
+      <div id="addonList" class="rules"></div>
+    </section>
+
+    <section id="s-history">
+      <h2>History</h2>
+      <label class="row switch">
+        <span><b>Keep a download history</b></span>
+        <input type="checkbox" name="historyEnabled" form="form">
+      </label>
+      <label class="row">
+        <span><b>Forget entries after (days)</b><small>0 keeps them forever (up to 500 entries).</small></span>
+        <input type="number" name="historyDays" min="0" max="3650" step="1" form="form">
+      </label>
+      <div class="row">
+        <span><b>Stored entries</b><small id="historyInfo">–</small></span>
+        <button type="button" class="btn danger" id="clearHistory">Clear history</button>
+      </div>
+    </section>
+
+    <section id="s-backup">
+      <h2>Backup &amp; restore</h2>
+      <div class="row">
+        <span><b>Export</b><small>Save your settings to a file you can import later or on another computer.</small></span>
+        <button type="button" class="btn" id="exportBtn">Export…</button>
+      </div>
+      <div class="checks" id="exportParts">
+        <label><input type="checkbox" value="settings" checked disabled> Settings</label>
+        <label><input type="checkbox" value="siteRules" checked> Site rules</label>
+        <label><input type="checkbox" value="addons" checked> Addons</label>
+        <label><input type="checkbox" value="library" checked> Saved links</label>
+        <label><input type="checkbox" value="history"> Download history</label>
+      </div>
+      <div class="row">
+        <span><b>Import</b><small>Load a VidSnag backup (.json). You can merge it with what you have or replace it.</small></span>
+        <label class="btn file-btn"><input type="file" id="importFile" accept=".json,application/json" hidden>Import…</label>
+      </div>
+      <div class="row">
+        <span><b>Reset</b><small>Restore every setting to its default. Saved links, history and addons are kept.</small></span>
+        <button type="button" class="btn" id="reset">Restore defaults</button>
+      </div>
+    </section>
+
+    <p class="fine muted foot-note">Shortcuts: <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>V</kbd> opens VidSnag, <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> downloads the best media on the tab. Change them at chrome://extensions/shortcuts. <a href="../popup/popup.html?mode=tab&amp;view=help" id="helpLink">Help &amp; troubleshooting</a></p>
   </div>
+  <div id="saved" class="saved-toast" role="status" aria-live="polite"></div>
   <script type="module" src="options.js"></script>
 </body>
 </html>
