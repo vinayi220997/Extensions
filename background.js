@@ -3,7 +3,7 @@ import {
   classify, normalizeMediaUrl, hashId, hostOf, buildFilename, sanitizeFolder, sanitizeFilename,
   resolutionLabel, formatDuration, extFromUrl
 } from './lib/util.js';
-import { getSettings, validate as validateSettings, pickVariant, pickAudioVariant, getSiteRules, normalizeSiteRules } from './lib/settings.js';
+import { getSettings, DEFAULT_SETTINGS, validate as validateSettings, pickVariant, pickAudioVariant, getSiteRules, normalizeSiteRules } from './lib/settings.js';
 import { getAddons, urlMatches, SCRIPT_PRELUDE } from './lib/addons.js';
 import { parseM3U8, isPlaylist, hlsVariantLabel } from './lib/hls.js';
 import { parseMPD, dashRepLabel } from './lib/dash.js';
@@ -222,7 +222,7 @@ async function addMedia(tabId, info) {
       width: info.width || 0,
       height: info.height || 0,
       duration: info.duration || 0,
-      poster: info.poster || '',
+      poster: /^https?:/i.test(info.poster || '') ? info.poster : '',
       referer: info.referer || tab.url,
       pageUrl: tab.url,
       title: info.title || tab.title || hostOf(tab.url),
@@ -271,7 +271,7 @@ async function probeManifest(tabId, id) {
   if (!item) return;
   let patch;
   try {
-    const text = await fetchText(item.url, item.referer);
+    const text = await fetchText(item.url, item.referer, probeCredentials(item));
     patch = item.kind === 'hls' ? await describeHls(text, item) : describeDash(text, item);
   } catch (e) {
     patch = { status: 'error', error: String(e.message || e) };
@@ -319,7 +319,7 @@ async function describeHls(text, item) {
     const best = [...variants].filter((v) => !v.audioOnly).sort((a, b) => b.bandwidth - a.bandwidth)[0];
     if (best) {
       try {
-        const media = parseM3U8(await fetchText(best.url, item.referer), best.url);
+        const media = parseM3U8(await fetchText(best.url, item.referer, probeCredentials(item)), best.url);
         meta = { duration: media.totalDuration, live: media.live, encrypted: media.encrypted, drm: media.drm };
       } catch { /* informational only */ }
     }
@@ -414,10 +414,18 @@ async function removeHeaderRule(id) {
   await chrome.declarativeNetRequest.updateSessionRules({ removeRuleIds: [id] }).catch(() => {});
 }
 
-async function fetchText(url, referer) {
+// Manifests reported by page scripts/markup (not seen on the network) are fetched without cookies
+// unless they are on the page's own site, so a page can't make VidSnag send credentialed requests.
+function probeCredentials(item) {
+  if ((item.sources || []).includes('network')) return 'include';
+  const site = (h) => h.split('.').slice(-2).join('.');
+  return site(hostOf(item.url)) === site(hostOf(item.pageUrl)) ? 'include' : 'omit';
+}
+
+async function fetchText(url, referer, credentials = 'include') {
   const ruleId = await addHeaderRule(url, referer);
   try {
-    const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
+    const res = await fetch(url, { credentials, cache: 'no-store' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return await res.text();
   } finally {
@@ -560,6 +568,10 @@ function engineOf(source) {
 }
 
 async function startFromSource(source, tabId = TAB_NONE, overrides = {}) {
+  if (!source || typeof source.url !== 'string') throw new Error('Nothing to download');
+  if (source.kind === 'blob' && tabId === TAB_NONE) throw new Error('In-page (blob) videos can only be saved while their page is open. Open the page and download it from the Media tab.');
+  if (source.kind !== 'blob' && !/^https?:/i.test(source.url)) throw new Error('Only web addresses (http/https) can be downloaded.');
+  if (!['file', 'hls', 'dash', 'blob'].includes(source.kind)) source = { ...source, kind: 'file' };
   const s = await settings();
   const custom = overrides.filename ? sanitizeFilename(String(overrides.filename).replace(/\.[a-z0-9]{2,4}$/i, '')) : '';
   const baseName = custom || buildFilename(source.template || s.filenameTemplate, {
@@ -1182,6 +1194,14 @@ function normalizeLibrary(lib) {
       if (!it || typeof it.url !== 'string' || !/^https?:/i.test(it.url)) continue;
       out.items.push({
         ...it,
+        pageUrl: typeof it.pageUrl === 'string' && /^https?:/i.test(it.pageUrl) ? it.pageUrl : '',
+        thumb: typeof it.thumb === 'string' && /^https?:/i.test(it.thumb) ? it.thumb : '',
+        kind: ['file', 'hls', 'dash', 'page'].includes(it.kind) ? it.kind : (it.type === 'page' ? 'page' : 'file'),
+        ext: typeof it.ext === 'string' ? it.ext.slice(0, 8) : '',
+        label: typeof it.label === 'string' ? it.label.slice(0, 80) : '',
+        res: typeof it.res === 'string' ? it.res.slice(0, 20) : '',
+        duration: Number(it.duration) || 0,
+        source: it.source && typeof it.source === 'object' && typeof it.source.url === 'string' ? it.source : null,
         id: typeof it.id === 'string' ? it.id : newId('l'),
         type: it.type === 'page' ? 'page' : 'video',
         title: String(it.title || it.url).slice(0, 300),
@@ -1282,11 +1302,13 @@ async function libCheck(ids) {
   const targets = lib.items.filter((x) => !ids || ids.includes(x.id));
   const results = {};
   for (let i = 0; i < targets.length; i += 4) {
-    await Promise.all(targets.slice(i, i + 4).map(async (x) => { results[x.id] = await checkLink(x); }));
+    const batch = {};
+    await Promise.all(targets.slice(i, i + 4).map(async (x) => { batch[x.id] = results[x.id] = await checkLink(x); }));
+    // Saved per batch, so a long check isn't lost if the service worker is suspended.
+    await mutateLibrary((l) => {
+      for (const x of l.items) if (batch[x.id]) { x.linkStatus = batch[x.id].status; x.lastChecked = Date.now(); }
+    });
   }
-  await mutateLibrary((l) => {
-    for (const x of l.items) if (results[x.id]) { x.linkStatus = results[x.id].status; x.lastChecked = Date.now(); }
-  });
   return results;
 }
 
@@ -1313,54 +1335,69 @@ async function libRefresh(id) {
   }
   if (!entry.pageUrl) throw new Error('This link was saved without its web page, so it can’t be refreshed automatically.');
 
-  let tabId = null;
-  let created = false;
-  const open = (await chrome.tabs.query({})).find((t) => t.url && sameDoc(t.url, entry.pageUrl));
-  if (open) {
-    tabId = open.id;
-    chrome.tabs.sendMessage(tabId, { type: 'vidsnag-scan' }).catch(() => {});
-  } else {
-    const t = await chrome.tabs.create({ url: entry.pageUrl, active: false });
-    tabId = t.id;
-    created = true;
-  }
-  try {
-    let candidates = [];
-    const end = Date.now() + 25000;
+  const fresh = (i) => i.status === 'ready' && i.kind !== 'blob' && i.url !== entry.url && !i.variants.some((v) => v.url === entry.url);
+  // Wait for detection on a tab; returns fresh candidates (never the expired address itself).
+  async function collect(tabId, maxMs) {
+    const end = Date.now() + maxMs;
     let rescanned = false;
+    let found = [];
     while (Date.now() < end) {
       await new Promise((r) => setTimeout(r, 700));
       const tab = await chrome.tabs.get(tabId).catch(() => null);
       if (!tab) break;
       if (tab.status === 'complete' && !rescanned) { rescanned = true; chrome.tabs.sendMessage(tabId, { type: 'vidsnag-scan' }).catch(() => {}); }
       const st = await readTab(tabId);
-      candidates = Object.values(st.items).filter((i) => i.status === 'ready' && i.kind !== 'blob');
+      found = Object.values(st.items).filter(fresh);
       const probing = Object.values(st.items).some((i) => i.status === 'probing');
-      if (candidates.length && !probing && tab.status === 'complete' && Date.now() > end - 21000) break;
+      if (found.length && !probing && tab.status === 'complete' && rescanned) {
+        await new Promise((r) => setTimeout(r, 1200)); // let late players report too
+        return Object.values((await readTab(tabId)).items).filter(fresh);
+      }
+    }
+    return found;
+  }
+
+  // 1) the page may already be open in a tab; 2) otherwise (or if it only shows the old address)
+  //    load a fresh copy of the page in a background tab.
+  let candidates = [];
+  let sourceTab = null;
+  const open = (await chrome.tabs.query({})).find((t) => t.url && sameDoc(t.url, entry.pageUrl));
+  if (open) {
+    chrome.tabs.sendMessage(open.id, { type: 'vidsnag-scan' }).catch(() => {});
+    candidates = await collect(open.id, 5000);
+    sourceTab = open.id;
+  }
+  let created = null;
+  try {
+    if (!candidates.length) {
+      created = (await chrome.tabs.create({ url: entry.pageUrl, active: false })).id;
+      candidates = await collect(created, 25000);
+      sourceTab = created;
     }
     if (!candidates.length) {
-      await mutateLibrary((l) => { const x = l.items.find((y) => y.id === id); if (x) { x.linkStatus = 'expired'; x.lastChecked = Date.now(); } });
-      return { updated: false, status: 'expired', message: 'No video was found on the page automatically. Open the page, play the video, then save it again.' };
+      const r = await checkLink(entry);
+      await mutateLibrary((l) => { const x = l.items.find((y) => y.id === id); if (x) { x.linkStatus = r.status; x.lastChecked = Date.now(); } });
+      if (r.status === 'ok') return { updated: false, status: 'ok', message: 'The link is still current.' };
+      return { updated: false, status: r.status, message: 'No video was found on the page automatically. Open the page, play the video, then save it again.' };
     }
     const scored = candidates.map((c) => ({ c, score: (c.kind === entry.kind ? 3 : 0) + urlSimilarity(c.url, entry.url) + (c.variants.some((v) => v.label === entry.label) ? 1 : 0) }))
       .sort((a, b) => b.score - a.score);
     const best = scored[0].c;
-    const st = await readTab(tabId);
+    const st = await readTab(sourceTab);
     const sameLabel = best.variants.find((v) => v.label === entry.label);
     const source = await buildSource(best, st, { variantId: sameLabel?.id, output: entry.source?.output === 'audio' ? 'audio' : 'auto' });
-    const changed = source.url !== entry.url;
     await mutateLibrary((l) => {
       const x = l.items.find((y) => y.id === id);
       if (!x) return;
       Object.assign(x, {
-        previousUrl: changed ? x.url : x.previousUrl, url: source.url, kind: best.kind, ext: source.ext, label: source.label,
+        previousUrl: x.url, url: source.url, kind: best.kind, ext: source.ext, label: source.label,
         res: source.res, thumb: x.thumb || source.thumb, source, linkStatus: 'ok', lastChecked: Date.now(),
         refreshedAt: Date.now(), updatedAt: Date.now()
       });
     });
-    return { updated: changed, status: 'ok', message: changed ? 'Link refreshed with the page’s current video address.' : 'The link is still current.' };
+    return { updated: true, status: 'ok', message: 'Link refreshed with the page’s current video address.' };
   } finally {
-    if (created) chrome.tabs.remove(tabId).catch(() => {});
+    if (created != null) chrome.tabs.remove(created).catch(() => {});
   }
 }
 
@@ -1666,6 +1703,11 @@ chrome.runtime.onStartup.addListener(() => {
   const staleBefore = Date.now() - 15000; // active jobs update every few hundred ms
   for (const j of Object.values(await readJobs())) {
     if (TERMINAL.includes(j.status) || j.updatedAt > staleBefore) continue;
+    if (j.engine === 'page' && j.downloadId == null) {
+      // The in-memory blob mapping died with the old service worker.
+      await failJob(j.id, 'Interrupted (extension restarted) — start the download again from the page');
+      continue;
+    }
     if (j.engine !== 'offscreen') {
       if (j.status === 'starting') await patchJob(j.id, { status: 'queued' });
       continue;

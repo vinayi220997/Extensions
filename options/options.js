@@ -296,7 +296,46 @@ $('importFile').addEventListener('change', async (e) => {
   } catch (err) { flash(`Import failed: ${err.message}`, true); }
 });
 
-async function importBackup(data, replace) {
+const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
+const httpUrl = (u) => typeof u === 'string' && /^https?:/i.test(u);
+
+// Validate the whole backup before writing anything, so a bad file can't leave a half-import.
+function sanitizeBackup(data) {
+  const out = {};
+  if (isObj(data.settings)) {
+    // Keep only the keys the backup actually has (older backups don't know newer settings).
+    const v = validate(data.settings);
+    out.settings = Object.fromEntries(Object.entries(v).filter(([k]) => k in data.settings));
+  }
+  if (isObj(data.siteRules)) out.siteRules = normalizeSiteRules(data.siteRules);
+  if (Array.isArray(data.addons)) {
+    out.addons = [];
+    for (const a of data.addons) { try { out.addons.push(normalizeAddon(a)); } catch { /* skip invalid addon */ } }
+  }
+  if (isObj(data.library)) {
+    const cats = (Array.isArray(data.library.categories) ? data.library.categories : [])
+      .filter((c) => isObj(c) && typeof c.name === 'string' && c.name.trim())
+      .map((c) => ({ id: typeof c.id === 'string' ? c.id : `c${Math.random().toString(36).slice(2, 9)}`, name: c.name.trim().slice(0, 60), color: /^#[0-9a-f]{6}$/i.test(c.color) ? c.color : '#0f766e' }));
+    const items = (Array.isArray(data.library.items) ? data.library.items : [])
+      .filter((x) => isObj(x) && httpUrl(x.url))
+      .map((x) => ({ ...x, type: x.type === 'page' ? 'page' : 'video', title: String(x.title || x.url).slice(0, 300), pageUrl: httpUrl(x.pageUrl) ? x.pageUrl : '', notes: String(x.notes || '').slice(0, 2000) }));
+    out.library = { categories: cats, items };
+  }
+  if (Array.isArray(data.history)) {
+    out.history = data.history.filter((x) => isObj(x) && typeof x.id === 'string' && httpUrl(x.url))
+      .map((x) => ({ ...x, title: String(x.title || '').slice(0, 300), pageUrl: httpUrl(x.pageUrl) ? x.pageUrl : '', finishedAt: Number(x.finishedAt) || 0 }));
+  }
+  return out;
+}
+
+async function importBackup(raw, replace) {
+  const data = sanitizeBackup(raw);
+  const scripts = (data.addons || []).filter((a) => a.kind === 'script');
+  if (scripts.length) {
+    const ok = await confirmDialog('Install script addons from this backup?',
+      `The backup contains ${scripts.length} script addon${scripts.length === 1 ? '' : 's'} (${scripts.map((a) => a.name).join(', ')}) that run their own JavaScript on the pages they match. Only continue if you trust this backup. Choosing Cancel imports everything else without them.`, 'Install scripts');
+    if (!ok) data.addons = data.addons.filter((a) => a.kind !== 'script');
+  }
   if (data.settings) await saveSettings(validate({ ...(replace ? {} : await getSettings()), ...data.settings }));
   const local = await chrome.storage.local.get(['siteRules', 'addons', 'library', 'history']);
   if (data.siteRules) {
@@ -305,8 +344,7 @@ async function importBackup(data, replace) {
     await saveSiteRules(replace ? inc : { actions: { ...cur.actions, ...inc.actions }, naming: { ...cur.naming, ...inc.naming } });
   }
   if (Array.isArray(data.addons)) {
-    const valid = [];
-    for (const a of data.addons) { try { valid.push(normalizeAddon(a)); } catch { /* skip invalid */ } }
+    const valid = data.addons;
     const cur = replace ? [] : (Array.isArray(local.addons) ? local.addons : []);
     for (const a of valid) {
       const i = cur.findIndex((x) => x.id === a.id || (x.name === a.name && x.kind === a.kind));
@@ -316,21 +354,23 @@ async function importBackup(data, replace) {
     await saveAddons(cur);
     chrome.runtime.sendMessage({ type: 'addons-sync' }).catch(() => {});
   }
-  if (data.library && typeof data.library === 'object') {
-    const inc = { categories: Array.isArray(data.library.categories) ? data.library.categories : [], items: Array.isArray(data.library.items) ? data.library.items : [] };
+  if (data.library) {
+    const inc = data.library;
     if (replace) await chrome.storage.local.set({ library: inc });
     else {
-      const cur = local.library && typeof local.library === 'object' ? { categories: local.library.categories || [], items: local.library.items || [] } : { categories: [], items: [] };
+      const cur = isObj(local.library) ? {
+        categories: (local.library.categories || []).filter((x) => isObj(x) && typeof x.name === 'string'),
+        items: (local.library.items || []).filter(isObj)
+      } : { categories: [], items: [] };
       const idMap = new Map();
       for (const c of inc.categories) {
-        if (!c || typeof c.name !== 'string') continue;
         const same = cur.categories.find((x) => x.name.toLowerCase() === c.name.toLowerCase());
         if (same) idMap.set(c.id, same.id);
         else { const id = cur.categories.some((x) => x.id === c.id) ? `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}` : c.id; cur.categories.push({ ...c, id }); idMap.set(c.id, id); }
       }
       const keys = new Set(cur.items.map((x) => `${x.type}|${x.url}`));
       for (const it of inc.items) {
-        if (!it || keys.has(`${it.type}|${it.url}`)) continue;
+        if (keys.has(`${it.type}|${it.url}`)) continue;
         keys.add(`${it.type}|${it.url}`);
         cur.items.push({ ...it, categoryId: idMap.get(it.categoryId) ?? null });
       }

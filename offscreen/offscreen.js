@@ -487,6 +487,12 @@ async function runDash(job, options, state) {
   const audioRep = output === 'auto' && src.audio
     ? (reps.find((r) => r.id === src.audio.repId && r.audioOnly) || audioReps.find((r) => r.ext === (rep.ext === 'webm' ? 'weba' : 'm4a')) || null)
     : null;
+  if (audioRep && rep.plan.type === 'single' && audioRep.plan.type === 'single' && rep.plan.url === audioRep.plan.url) {
+    // Both tracks live in the same file: it already contains video and audio.
+    const r = await dashTrack(job, rep, options, state, report.part(0, 1));
+    report({ progress: 1, bytes: r.blob.size, finalizing: true }, true);
+    return r;
+  }
   if (audioRep) {
     const v = await dashTrack(job, rep, options, state, report.part(0, 0.85, 'Video track'));
     const a = await dashTrack(job, audioRep, options, state, report.part(0.85, 0.98, 'Audio track'));

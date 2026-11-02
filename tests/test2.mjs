@@ -435,6 +435,21 @@ await step('library', async () => {
   await p.close();
 });
 
+await step('refresh-with-open-page', async () => {
+  const { page, tabId } = await openPage('page-token.html', 2500);
+  const mid = Object.values((await tabState(tabId)).items).find((i) => i.url.includes('/token/'))?.id;
+  const p = await panel(tabId);
+  const saved = (await p.evaluate(async ([t, m]) => chrome.runtime.sendMessage({ type: 'lib-save-media', tabId: t, mediaId: m, title: 'Open page refresh' }), [tabId, mid])).result;
+  await fetch(`${BASE}/__rotate`);
+  // The open tab still shows the old (now expired) address.
+  const r = await p.evaluate(async (id) => chrome.runtime.sendMessage({ type: 'lib-refresh', id }), saved.id);
+  const item = (await library()).items.find((x) => x.id === saved.id);
+  const stillOpen = (await sw.evaluate(async () => (await chrome.tabs.query({})).map((t) => t.url))).filter((u) => u.includes('page-token')).length;
+  check('Refresh while the page is open on the old address → fresh copy loaded, new URL stored', r.ok && r.result.updated && item.url !== saved.url && item.linkStatus === 'ok', `${saved.url} → ${item.url} | ${r.result?.message}`);
+  check('User’s own tab is left open; temporary tab closed', stillOpen === 1, String(stillOpen));
+  await p.close(); await page.close();
+});
+
 // ======================= 7. Settings, appearance, panels =======================
 await step('settings-appearance-panels', async () => {
   const o = await ctx.newPage();
@@ -583,7 +598,35 @@ await step('addons', async () => {
   check('Script addon reports media via VidSnag.report()', st.available ? fromScript?.title === 'From script addon' && fromScript.kind === 'hls' : true,
     st.available ? JSON.stringify(fromScript && { t: fromScript.title, k: fromScript.kind }) : 'User Scripts toggle unavailable in this Chrome build — instructions shown instead');
   if (!st.available) check('Instructions shown when user scripts are off', await o.locator('#userScriptsStatus').isVisible());
+  // Backup containing a script addon asks before installing it.
+  const backup = path.join(OUT, 'with-script.json');
+  const addonsNow = await sw.evaluate(async () => (await chrome.storage.local.get('addons')).addons);
+  fs.writeFileSync(backup, JSON.stringify({ app: 'VidSnag', format: 1, settings: { theme: 'system' }, addons: addonsNow }));
+  await sw.evaluate(async () => chrome.storage.local.set({ addons: [] }));
+  await o.setInputFiles('#importFile', backup);
+  await o.locator('dialog.modal', { hasText: 'Import backup' }).waitFor({ timeout: 5000 }).catch(() => {});
+  const d1 = await o.locator('dialog.modal').allInnerTexts();
+  await o.locator('dialog.modal', { hasText: 'Import backup' }).locator('button[value="ok"]').click(); // merge
+  await o.locator('dialog.modal', { hasText: 'Install script addons' }).waitFor({ timeout: 5000 }).catch(() => {});
+  const asked = await o.locator('dialog.modal', { hasText: 'Install script addons from this backup' }).count();
+  if (!asked) console.log('DEBUG import dialogs', d1, await o.locator('dialog.modal').allInnerTexts(), await o.locator('#saved').innerText(), JSON.stringify(addonsNow).slice(0, 300));
+  await o.locator('dialog.modal', { hasText: 'Install script addons' }).locator('button[value="cancel"]').click(); // decline scripts
+  await o.waitForFunction(() => /imported|failed/i.test(document.getElementById('saved').textContent), null, { timeout: 8000 }).catch(() => {});
+  const flashText = await o.locator('#saved').innerText();
+  const after = await sw.evaluate(async () => (await chrome.storage.local.get('addons')).addons || []);
+  check('Backup import asks before installing script addons (declined → rules only)', asked === 1 && after.length === 1 && after[0].kind === 'rules', `${asked} ${after.map((a) => a.kind)} | ${flashText}`);
   await sp.page.close(); await o.close();
+});
+
+// Fresh install: defaults written, context menus built, no service-worker errors.
+await step('fresh-install', async () => {
+  const prof = path.join(OUT, 'fresh-profile');
+  const c2 = await chromium.launchPersistentContext(prof, { headless: true, channel: 'chromium', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`] });
+  const w = c2.serviceWorkers()[0] || await c2.waitForEvent('serviceworker');
+  await sleep(1500);
+  const r = await w.evaluate(async () => ({ s: (await chrome.storage.sync.get('settings')).settings, popup: await chrome.action.getPopup({}) }));
+  check('Fresh install: default settings stored + popup set', r.s && r.s.defaultPanel === 'popup' && r.popup.endsWith('popup/popup.html'), JSON.stringify(r).slice(0, 120));
+  await c2.close();
 });
 
 console.log('SW errors:', swErrors.slice(0, 8));

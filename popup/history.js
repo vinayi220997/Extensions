@@ -41,7 +41,7 @@ function card(entry) {
       ok && entry.downloadId != null ? iconButton('folder', 'Show in folder', () => openDownload(entry.downloadId, true)) : null,
       h('span', { class: 'spacer' }),
       iconButton('copy', 'Copy source link', () => copyText(entry.url)),
-      entry.pageUrl ? iconButton('globe', 'Open the page', () => chrome.tabs.create({ url: entry.pageUrl })) : null,
+      /^https?:/i.test(entry.pageUrl || '') ? iconButton('globe', 'Open the page', () => chrome.tabs.create({ url: entry.pageUrl })) : null,
       iconButton('retry', 'Download again', () => send({ type: 'redownload', source: entry.source }).then(() => toast('Download started')).catch((e) => toast(e.message, true))),
       iconButton('trash', 'Remove from history', () => send({ type: 'remove-history', id: entry.id }))));
 }

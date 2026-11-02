@@ -67,7 +67,7 @@
           width: el.videoWidth || 0,
           height: el.videoHeight || 0,
           duration: isFinite(el.duration) ? el.duration : 0,
-          poster: el.poster ? abs(el.poster) : ''
+          poster: el.poster && isHttp(abs(el.poster)) ? abs(el.poster) : ''
         };
         const srcs = new Set([el.currentSrc, el.getAttribute('src')].filter(Boolean));
         for (const s of srcs) out.push({ url: abs(s), ...meta });
@@ -135,7 +135,7 @@
             const thumb = [].concat(o.thumbnailUrl || [])[0];
             out.push({
               url: abs(o.contentUrl), tag: /Audio/.test(type) ? 'audio' : 'jsonld', title: typeof o.name === 'string' ? o.name.slice(0, 200) : '',
-              poster: typeof thumb === 'string' ? abs(thumb) : '', duration: isoDuration(o.duration), kind: kindFromUrl(o.contentUrl), source: 'meta'
+              poster: typeof thumb === 'string' && isHttp(abs(thumb)) ? abs(thumb) : '', duration: isoDuration(o.duration), kind: kindFromUrl(o.contentUrl), source: 'meta'
             });
           }
           for (const v of Object.values(o)) if (v && typeof v === 'object') stack.push(v);
@@ -196,7 +196,7 @@
       out.push({
         url: u, kind: 'blob', ext, mime: info.mime, size: info.size, tag: el.tagName.toLowerCase(),
         width: el.videoWidth || 0, height: el.videoHeight || 0, duration: isFinite(el.duration) ? el.duration : 0,
-        poster: el.poster ? abs(el.poster) : '', source: 'blob'
+        poster: el.poster && isHttp(abs(el.poster)) ? abs(el.poster) : '', source: 'blob'
       });
     }
     return out;

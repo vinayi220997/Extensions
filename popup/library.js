@@ -117,7 +117,8 @@ function card(x) {
 }
 
 function openUrl(url) {
-  chrome.tabs.create({ url });
+  if (/^https?:/i.test(url || '')) chrome.tabs.create({ url });
+  else toast('Only web addresses (http/https) can be opened', true);
 }
 
 async function downloadItem(x, output) {
