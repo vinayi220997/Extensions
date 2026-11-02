@@ -474,7 +474,7 @@ async function updateBadge(tabId) {
   await chrome.action.setBadgeBackgroundColor({ tabId, color: s.accent === 'custom' ? s.accentCustom : (BADGE_COLORS[s.accent] || BADGE_COLORS.teal) }).catch(() => {});
   await chrome.action.setTitle({ tabId, title: count ? `VidSnag – ${count} media found` : 'VidSnag' }).catch(() => {});
   // Unpinned mode: the in-page indicator shows the same count.
-  if (s.sidebarMode === 'unpinned') chrome.tabs.sendMessage(tabId, { type: 'vidsnag-count', count }, { frameId: 0 }).catch(() => {});
+  if (s.dockOpen) chrome.tabs.sendMessage(tabId, { type: 'vidsnag-count', count }, { frameId: 0 }).catch(() => {});
 }
 async function refreshAllBadges() {
   const tabs = await chrome.tabs.query({});
@@ -1036,8 +1036,8 @@ async function buildContextMenus() {
   await chrome.contextMenus.removeAll();
   const add = (o) => chrome.contextMenus.create(o, () => void chrome.runtime.lastError);
   // Toolbar-icon menu (always available, max 6 entries).
-  add({ id: 'act-sidebar', title: 'Open in sidebar', contexts: ['action'] });
-  add({ id: 'act-window', title: 'Open in a separate window', contexts: ['action'] });
+  add({ id: 'act-dock', title: 'Show the VidSnag page sidebar', contexts: ['action'] });
+  add({ id: 'act-sidebar', title: 'Open in Chrome\u2019s side panel', contexts: ['action'] });
   add({ id: 'act-library', title: 'Saved links', contexts: ['action'] });
   add({ id: 'act-history', title: 'Download history', contexts: ['action'] });
   add({ id: 'act-help', title: 'Help & troubleshooting', contexts: ['action'] });
@@ -1058,7 +1058,8 @@ async function buildContextMenus() {
   add({ id: 'vs-save-page', parentId: 'vs', title: 'Save this page to list', contexts: C });
   add({ id: 'vs-rescan', parentId: 'vs', title: 'Rescan page for media', contexts: C });
   add({ id: 'vs-sep2', parentId: 'vs', type: 'separator', contexts: C });
-  add({ id: 'vs-sidebar', parentId: 'vs', title: 'Open VidSnag in sidebar', contexts: C });
+  add({ id: 'vs-dock', parentId: 'vs', title: 'Show the VidSnag page sidebar', contexts: C });
+  add({ id: 'vs-sidebar', parentId: 'vs', title: 'Open VidSnag in Chrome\u2019s side panel', contexts: C });
   add({ id: 'vs-window', parentId: 'vs', title: 'Open VidSnag in a window', contexts: C });
   add({ id: 'vs-library', parentId: 'vs', title: 'Saved links', contexts: C });
 }
@@ -1086,6 +1087,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
 async function handleMenuClick(info, tab) {
   const id = info.menuItemId;
   if (id === 'act-window' || id === 'vs-window') return openPanelWindow();
+  if (id === 'act-dock' || id === 'vs-dock') return openDock(false);
   if (id === 'act-library' || id === 'vs-library') return openPanelTab('library');
   if (id === 'act-history') return openPanelTab('history');
   if (id === 'act-help') return openPanelTab('help');
@@ -1196,8 +1198,23 @@ async function applyPanelBehavior() {
   const s = await settings();
   const sidebar = s.defaultPanel === 'sidebar';
   await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: sidebar }).catch(() => {});
-  await chrome.action.setPopup({ popup: sidebar ? '' : PANEL_URL }).catch(() => {});
+  await chrome.action.setPopup({ popup: s.defaultPanel === 'popup' ? PANEL_URL : '' }).catch(() => {});
 }
+// Show / pin the VidSnag page sidebar (keeps the user's Max/Mini choice).
+async function openDock(toggle = false) {
+  const s = await settings();
+  const raw = (await chrome.storage.sync.get('settings')).settings || {};
+  const open = toggle ? (!s.dockOpen || s.sidebarMode === 'autohide') : true;
+  await chrome.storage.sync.set({ settings: { ...raw, dockOpen: open, sidebarMode: s.sidebarMode === 'autohide' && open ? s.lastPinnedMode : s.sidebarMode } });
+  return open;
+}
+// Default panel = VidSnag page sidebar: the toolbar icon shows/hides it (on every page).
+chrome.action.onClicked.addListener(async (tab) => {
+  const s = await settings();
+  if (s.defaultPanel !== 'docked') return;
+  const open = await openDock(true);
+  if (open && !/^https?:/.test(tab?.url || '')) notify('VidSnag sidebar', 'The page sidebar appears on regular web pages (http/https).');
+});
 
 async function openPanelWindow(view = '') {
   const s = await settings();
@@ -1625,6 +1642,8 @@ async function handleMessage(msg, sender) {
       return chrome.tabs.sendMessage(msg.tabId, { type: 'vidsnag-eval-selector', selector: msg.selector }, { frameId: 0 }).catch(() => ({ ok: false, error: 'The page is not reachable. Reload it and try again.' }));
     case 'open-window':
       return openPanelWindow(msg.view || '');
+    case 'open-dock':
+      return openDock(false);
     case 'open-panel-tab':
       return openPanelTab(msg.view || 'media');
     case 'reload-tab':
@@ -1803,4 +1822,4 @@ chrome.runtime.onStartup.addListener(() => {
 })();
 
 // Used by the automated test-suite (native context menus can't be clicked in headless Chrome).
-globalThis.__vidsnag = { handleMenuClick, downloadBest, applyPanelBehavior, openPanelWindow };
+globalThis.__vidsnag = { handleMenuClick, downloadBest, applyPanelBehavior, openPanelWindow, openDock };

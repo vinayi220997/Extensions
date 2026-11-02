@@ -19,7 +19,7 @@
 
     <nav class="jump" aria-label="Sections">
       <a href="#s-format">Format</a><a href="#s-saving">Saving</a><a href="#s-detect">Detection</a>
-      <a href="#s-appearance">Appearance</a><a href="#s-behaviour">Behaviour</a><a href="#s-sites">Sites</a>
+      <a href="#s-appearance">Appearance</a><a href="#s-behaviour">Behaviour</a><a href="#s-sidebar">Sidebar</a><a href="#s-sites">Sites</a>
       <a href="#s-addons">Addons</a><a href="#s-history">History</a><a href="#s-backup">Backup</a>
     </nav>
 
@@ -155,7 +155,8 @@
           <span><b>Default panel</b><small>What clicking the toolbar icon opens.</small></span>
           <div class="seg" role="radiogroup" aria-label="Default panel">
             <label><input type="radio" name="defaultPanel" value="popup"><span>Popup</span></label>
-            <label><input type="radio" name="defaultPanel" value="sidebar"><span>Sidebar</span></label>
+            <label><input type="radio" name="defaultPanel" value="docked"><span>Page sidebar</span></label>
+            <label><input type="radio" name="defaultPanel" value="sidebar"><span>Chrome side panel</span></label>
           </div>
         </div>
       </section>
@@ -168,14 +169,6 @@
             <label><input type="radio" name="defaultAction" value="download"><span>Download</span></label>
             <label><input type="radio" name="defaultAction" value="audio"><span>Download audio</span></label>
             <label><input type="radio" name="defaultAction" value="copy"><span>Copy link</span></label>
-          </div>
-        </div>
-        <div class="row">
-          <span><b>Sidebar mode</b><small>Max shows everything, Mini only the essentials. Unpin hides VidSnag to a small tab at the edge of each page that opens on hover.</small></span>
-          <div class="seg" role="radiogroup" aria-label="Sidebar mode">
-            <label><input type="radio" name="sidebarMode" value="max"><span>Max</span></label>
-            <label><input type="radio" name="sidebarMode" value="mini"><span>Mini</span></label>
-            <label><input type="radio" name="sidebarMode" value="unpinned"><span>Unpinned</span></label>
           </div>
         </div>
         <div class="row">
@@ -196,6 +189,45 @@
         <label class="row switch">
           <span><b>Desktop notifications</b><small>When a download finishes or fails.</small></span>
           <input type="checkbox" name="notifications">
+        </label>
+      </section>
+
+      <section id="s-sidebar">
+        <h2>Sidebar</h2>
+        <p class="fine muted">VidSnag’s page sidebar docks at the right edge of web pages. These options only change the sidebar — pinning VidSnag’s <i>icon</i> to Chrome’s toolbar is done in Chrome’s puzzle-piece menu and is never changed by VidSnag.</p>
+        <label class="row switch">
+          <span><b>Show the page sidebar</b><small>On every web page, until you close it (× in the sidebar).</small></span>
+          <input type="checkbox" name="dockOpen">
+        </label>
+        <div class="row">
+          <span><b>Sidebar mode</b><small>Max: the full sidebar. Mini: a narrow column with the essentials. Auto-hide: only a small handle at the edge.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Sidebar mode">
+            <label title="Max — full sidebar"><input type="radio" name="sidebarMode" value="max"><span>Max</span></label>
+            <label title="Mini — compact sidebar"><input type="radio" name="sidebarMode" value="mini"><span>Mini</span></label>
+            <label title="Auto-hide — edge handle"><input type="radio" name="sidebarMode" value="autohide"><span>Auto-hide</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Auto-hide opens on</b><small>Hover: slides out when you point at the handle and hides when you move away. Click: opens on click, closes when you click outside.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Auto-hide opens on">
+            <label><input type="radio" name="autoHideTrigger" value="hover"><span>Hover</span></label>
+            <label><input type="radio" name="autoHideTrigger" value="click"><span>Click</span></label>
+          </div>
+        </div>
+        <div class="row">
+          <span><b>Page layout</b><small>Shrink the page so the sidebar never covers it, or float the sidebar over the page.</small></span>
+          <div class="seg" role="radiogroup" aria-label="Page layout">
+            <label><input type="radio" name="dockLayout" value="push"><span>Shrink page</span></label>
+            <label><input type="radio" name="dockLayout" value="overlay"><span>Overlay</span></label>
+          </div>
+        </div>
+        <label class="row">
+          <span><b>Max width (px)</b><small>Or drag the sidebar’s left edge. Double-click the edge to reset.</small></span>
+          <input type="number" name="sidebarMaxWidth" min="280" max="1200" step="10">
+        </label>
+        <label class="row">
+          <span><b>Mini width (% of the window)</b><small>5–10 %, never narrower than a usable minimum.</small></span>
+          <input type="number" name="sidebarMiniPct" min="5" max="10" step="0.5">
         </label>
       </section>
     </form>

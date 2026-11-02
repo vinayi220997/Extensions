@@ -233,3 +233,35 @@ body.mini .empty { padding: 16px 8px; }
 body.mini .empty-art { width: 40px; height: 40px; border-radius: 12px; }
 body.mini .empty-art::after { inset: 10px; }
 body[data-mode="float"] { background: var(--bg); }
+
+/* ---------- 2.2: icon-only sidebar mode controls ---------- */
+.mode-switch button { width: 30px; height: 26px; padding: 0; justify-content: center; font-size: 0; gap: 0; transition: background .15s, color .15s, transform .1s; }
+.mode-switch button svg { width: 16px; height: 16px; }
+.mode-switch button:active { transform: scale(.92); }
+.mode-switch button.active { color: var(--accent); background: var(--surface); box-shadow: var(--shadow), inset 0 -2px 0 var(--accent); }
+body[data-mode="dock"] { border-left: 0; }
+body[data-mode="dock"] .top { padding-right: 4px; }
+
+/* Page sidebar in Mini: a very narrow column (≈5–10 % of the window). */
+@media (max-width: 200px) {
+  body.mini { min-width: 0; }
+  body.mini .top { flex-direction: column; align-items: stretch; gap: 4px; padding: 6px 4px; }
+  body.mini .brand, body.mini .top-actions { display: none; }
+  body.mini .mode-switch { margin: 0; justify-content: space-between; }
+  body.mini .mode-switch button { width: auto; flex: 1; min-width: 22px; }
+  body.mini main { padding: 4px; }
+  body.mini .notice { flex-direction: column; font-size: .78em; padding: 6px; }
+  body.mini .notice svg { display: none; }
+  .list.mini { gap: 6px; }
+  .list.mini .mini-card { flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 8px 4px 6px; }
+  .list.mini .mini-body { width: 100%; }
+  .list.mini .mini-title { font-size: .8em; }
+  .list.mini .mini-info { white-space: normal; font-size: .76em; line-height: 1.25; }
+  .list.mini .mini-progress { font-size: .76em; }
+  .list.mini .mini-card .icon-btn[aria-label="More actions"] { display: none; }
+  .list.mini .mini-frame { width: 56px; height: 56px; }
+  .list.mini .ring { width: 56px; height: 56px; }
+  body.mini .empty h2 { font-size: .85em; }
+  body.mini .empty p, body.mini .empty-actions { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .ring .bar, .mode-switch button { transition: none; } }

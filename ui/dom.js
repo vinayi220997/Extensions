@@ -43,7 +43,10 @@ const SVG = {
   resume: '<path d="M7 5v14l11-7Z"/>',
   max: '<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>',
   mini: '<path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/>',
-  sort: '<path d="M7 4v16M3 16l4 4 4-4"/><path d="M14 6h7M14 11h5M14 16h3"/>'
+  sort: '<path d="M7 4v16M3 16l4 4 4-4"/><path d="M14 6h7M14 11h5M14 16h3"/>',
+  panelMax: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/><path d="m13 10 2 2-2 2"/>',
+  panelMini: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M16 4v16"/><path d="M18.5 9v6"/>',
+  panelHide: '<path d="M14 4H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h9"/><path d="M14 4v16"/><path d="m18 9 3 3-3 3"/>'
 };
 
 export function icon(name) {

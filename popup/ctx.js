@@ -4,7 +4,7 @@ import { hostOf } from '../lib/util.js';
 const params = new URLSearchParams(location.search);
 
 export const ctx = {
-  mode: ['popup', 'sidebar', 'window', 'pip', 'tab', 'float'].includes(params.get('mode')) ? params.get('mode') : 'popup',
+  mode: ['popup', 'sidebar', 'window', 'pip', 'tab', 'dock'].includes(params.get('mode')) ? params.get('mode') : 'popup',
   forcedTabId: Number(params.get('tabId')) || null,
   initialView: params.get('view') || '',
   tab: null,            // the browser tab whose media is shown

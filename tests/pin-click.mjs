@@ -1,28 +1,34 @@
-// Verifies the floating indicator's Pin button with a real mouse click in a fresh session.
+// Real-mouse check of the page sidebar: hover the Auto-hide handle, then click the Auto-hide icon
+// inside the sidebar (with the mouse, at its screen position) to pin it back at its previous size.
 import { createRequire } from 'module';
+import fs from 'fs';
 import path from 'path';
 const require = createRequire(import.meta.url);
 let chromium;
 try { ({ chromium } = require('playwright')); } catch { ({ chromium } = require('/opt/npm-tools/node_modules/playwright')); }
 const EXT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-const ctx = await chromium.launchPersistentContext(require('fs').mkdtempSync('/tmp/vs-pin-'), { headless: true, channel: 'chromium', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: 1100, height: 800 } });
+const VW = 1200, VH = 800;
+const ctx = await chromium.launchPersistentContext(fs.mkdtempSync('/tmp/vs-pin-'), { headless: true, channel: 'chromium', args: [`--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`], viewport: { width: VW, height: VH } });
 const sw = ctx.serviceWorkers()[0] || await ctx.waitForEvent('serviceworker');
 await new Promise((r) => setTimeout(r, 800));
-await sw.evaluate(async () => { const { settings } = await chrome.storage.sync.get('settings'); await chrome.storage.sync.set({ settings: { ...settings, sidebarMode: 'unpinned', lastPinnedMode: 'mini' } }); });
+await sw.evaluate(async () => { const { settings } = await chrome.storage.sync.get('settings'); await chrome.storage.sync.set({ settings: { ...settings, dockOpen: true, sidebarMode: 'autohide', lastPinnedMode: 'max', sidebarMaxWidth: 420 } }); });
 const page = await ctx.newPage();
 await page.goto('http://localhost:8765/page-mp4.html');
 await page.waitForTimeout(2500);
-const box = await page.locator('vidsnag-indicator').boundingBox();
-await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-await page.waitForTimeout(1500);
-const frame = page.frames().find((f) => f.url().includes('mode=float'));
-await frame.waitForSelector('#btnPinBack');
+const host = page.locator('vidsnag-sidebar');
+await page.mouse.move(VW - 8, VH * 0.45);
+await page.waitForTimeout(900);
+const expanded = await host.getAttribute('data-expanded');
+const frame = page.frames().find((f) => f.url().includes('mode=dock'));
+await frame.waitForSelector('#modeSwitch button[title]');
 const fbox = await (await frame.frameElement()).boundingBox();
-const b = await frame.evaluate(() => { const r = document.getElementById('btnPinBack').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+const b = await frame.evaluate(() => { const r = document.querySelector('#modeSwitch button[data-mode="autohide"]').getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; });
+await page.mouse.move(fbox.x + b.x, fbox.y + b.y, { steps: 3 });
 await page.mouse.click(fbox.x + b.x, fbox.y + b.y);
-await page.waitForTimeout(1500);
-const mode = await sw.evaluate(async () => (await chrome.storage.sync.get('settings')).settings.sidebarMode);
-const gone = (await page.locator('vidsnag-indicator').count()) === 0;
-console.log(`${mode === 'mini' && gone ? 'PASS' : 'FAIL'}  Real mouse click on Pin restores Mini and removes the indicator  — ${mode} ${gone}`);
+await page.waitForTimeout(1200);
+const mode = await host.getAttribute('data-mode');
+const width = await host.getAttribute('data-width');
+const ok = expanded === 'true' && mode === 'max' && width === '420';
+console.log(`${ok ? 'PASS' : 'FAIL'}  Real mouse: hover handle opens, clicking Auto-hide pins back to Max at 420 px  — ${expanded} ${mode} ${width}`);
 await ctx.close();
-process.exit(mode === 'mini' && gone ? 0 : 1);
+process.exit(ok ? 0 : 1);

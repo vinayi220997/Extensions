@@ -19,7 +19,7 @@ let pipWindow = null;
 // ---------------------------------------------------------------------------
 async function resolveTab() {
   if (ctx.forcedTabId) return chrome.tabs.get(ctx.forcedTabId).catch(() => null);
-  if (ctx.mode === 'float') return (await chrome.tabs.getCurrent()) || null; // the page hosting the indicator
+  if (ctx.mode === 'dock') return (await chrome.tabs.getCurrent()) || null; // the page hosting the sidebar
   if (ctx.mode === 'popup' || ctx.mode === 'sidebar') {
     const [t] = await chrome.tabs.query({ active: true, currentWindow: true });
     return t || null;
@@ -42,7 +42,7 @@ async function setTab(t) {
 }
 
 function watchTabs() {
-  if (ctx.forcedTabId || ctx.mode === 'popup' || ctx.mode === 'float') return;
+  if (ctx.forcedTabId || ctx.mode === 'popup' || ctx.mode === 'dock') return;
   let myWindowId = null;
   chrome.windows.getCurrent().then((w) => { myWindowId = w.id; });
   const refresh = async () => setTab(await resolveTab());
@@ -151,7 +151,8 @@ function panelMenu() {
   showMenu($('btnPanel'), [
     { header: 'Open VidSnag in' },
     { label: 'Popup', icon: 'list', checked: ctx.mode === 'popup', disabled: ctx.mode === 'popup', onClick: () => chrome.action.openPopup?.().catch(() => toast('Click the VidSnag toolbar icon to open the popup.')) },
-    { label: 'Sidebar', icon: 'sidebar', checked: ctx.mode === 'sidebar', disabled: ctx.mode === 'sidebar', onClick: openSidebar },
+    { label: 'Page sidebar (Max / Mini / Auto-hide)', icon: 'sidebar', checked: ctx.mode === 'dock', disabled: ctx.mode === 'dock', onClick: openDock },
+    { label: 'Chrome side panel', icon: 'sidebar', checked: ctx.mode === 'sidebar', disabled: ctx.mode === 'sidebar', onClick: openSidebar },
     { label: 'Separate window', icon: 'window', checked: ctx.mode === 'window', disabled: ctx.mode === 'window', onClick: () => openWindow() },
     { label: 'New tab', icon: 'open', checked: ctx.mode === 'tab', disabled: ctx.mode === 'tab', onClick: () => send({ type: 'open-panel-tab', view: ctx.view }).then(() => ctx.mode === 'popup' && window.close()) },
     'sep',
@@ -161,7 +162,8 @@ function panelMenu() {
     'sep',
     { header: 'Toolbar icon opens' },
     { label: 'Popup', checked: ctx.settings.defaultPanel === 'popup', onClick: () => saveSettings({ defaultPanel: 'popup' }).then(() => toast('The toolbar icon now opens the popup')) },
-    { label: 'Sidebar', checked: ctx.settings.defaultPanel === 'sidebar', onClick: () => saveSettings({ defaultPanel: 'sidebar' }).then(() => toast('The toolbar icon now opens the sidebar')) }
+    { label: 'Page sidebar', checked: ctx.settings.defaultPanel === 'docked', onClick: () => saveSettings({ defaultPanel: 'docked' }).then(() => toast('The toolbar icon now shows/hides the page sidebar')) },
+    { label: 'Chrome side panel', checked: ctx.settings.defaultPanel === 'sidebar', onClick: () => saveSettings({ defaultPanel: 'sidebar' }).then(() => toast('The toolbar icon now opens Chrome\u2019s side panel')) }
   ]);
 }
 
@@ -182,46 +184,67 @@ async function savePage() {
 // ---------------------------------------------------------------------------
 // Init
 // ---------------------------------------------------------------------------
-const MODE_PANELS = ['sidebar', 'window', 'pip'];
+// Panels that show the Max / Mini / Auto-Hide controls.
+const MODE_PANELS = ['dock', 'sidebar', 'window', 'pip'];
+const MODE_INFO = {
+  max: { icon: 'panelMax', tip: 'Max — full sidebar' },
+  mini: { icon: 'panelMini', tip: 'Mini — compact sidebar' },
+  autohide: { icon: 'panelHide', tip: 'Auto-hide — collapse to an edge handle' }
+};
 let started = false;
 function applySettings(s) {
   ctx.settings = s;
   applyAppearance(s, { sizeBody: ctx.mode === 'popup' });
-  const compact = ctx.mode === 'float' || (MODE_PANELS.includes(ctx.mode) && s.sidebarMode === 'mini');
+  const size = s.sidebarMode === 'autohide' ? s.lastPinnedMode : s.sidebarMode;
+  const compact = MODE_PANELS.includes(ctx.mode) && size === 'mini';
   const changed = compact !== ctx.compact;
   ctx.compact = compact;
   document.body.classList.toggle('mini', compact);
+  document.body.dataset.sidebar = s.sidebarMode;
   for (const b of document.querySelectorAll('#modeSwitch button')) {
-    const on = b.dataset.mode === (s.sidebarMode === 'unpinned' ? s.lastPinnedMode : s.sidebarMode);
+    const m = b.dataset.mode;
+    const on = m === s.sidebarMode;
     b.classList.toggle('active', on);
     b.setAttribute('aria-pressed', String(on));
+    const tip = m === 'autohide' && on ? 'Auto-hide is on — click to pin the sidebar again' : MODE_INFO[m].tip;
+    b.title = tip;
+    b.setAttribute('aria-label', tip);
   }
   if (changed && started) switchView(compact ? 'media' : ctx.view);
 }
 
-// Max / Mini / Unpin. Chrome can't resize or float the side panel itself, so Unpin closes the
-// panel and every page shows a small indicator at its edge that expands into the Mini panel on hover.
+// Max / Mini / Auto-hide. These only change VidSnag's sidebar — never the toolbar pin of the
+// extension icon, which Chrome alone controls (puzzle-piece menu).
 async function setPanelMode(mode) {
+  const s = ctx.settings;
+  if (mode === 'autohide' && s.sidebarMode === 'autohide') mode = s.lastPinnedMode || 'max'; // click again = pin
   if (mode === 'max' || mode === 'mini') {
     await saveSettings({ sidebarMode: mode, lastPinnedMode: mode });
+    toast(mode === 'max' ? 'Max sidebar' : 'Mini sidebar');
     return;
   }
-  await saveSettings({ sidebarMode: 'unpinned', lastPinnedMode: ctx.settings.sidebarMode === 'mini' ? 'mini' : 'max' });
-  toast('Unpinned — hover the VidSnag tab at the edge of the page to open it');
+  const lastPinnedMode = s.sidebarMode === 'mini' ? 'mini' : s.sidebarMode === 'max' ? 'max' : s.lastPinnedMode;
+  if (ctx.mode === 'dock') {
+    await saveSettings({ sidebarMode: 'autohide', lastPinnedMode });
+    return; // the page sidebar slides away to its edge handle
+  }
+  // Chrome's side panel / a window can't shrink to a handle: hand over to the page sidebar.
+  await saveSettings({ sidebarMode: 'autohide', lastPinnedMode, dockOpen: true });
+  toast('Auto-hide on — use the handle at the right edge of the page');
   setTimeout(() => {
     if (ctx.mode === 'pip') { try { window.parent.close(); } catch { window.close(); } }
-    else window.close(); // closes the side panel / VidSnag window
+    else if (ctx.mode !== 'tab') window.close(); // closes the side panel / VidSnag window
   }, 700);
 }
 
-function pinBack() {
-  const target = ctx.settings.lastPinnedMode || 'max';
-  // sidePanel.open must be called synchronously inside the click (user gesture).
-  let opening;
-  try { opening = chrome.sidePanel.open({ windowId: ctx.tab?.windowId }); } catch (e) { opening = Promise.reject(e); }
-  const saved = saveSettings({ sidebarMode: target });
-  Promise.race([opening, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 3000))])
-    .catch(async () => { await saved; send({ type: 'open-window' }).catch(() => {}); }); // side panel unavailable: use the window
+async function openDock() {
+  await send({ type: 'open-dock' });
+  toast('Page sidebar shown on web pages');
+  if (ctx.mode === 'popup') setTimeout(() => window.close(), 400);
+}
+
+async function closeDock() {
+  await saveSettings({ dockOpen: false });
 }
 
 // Refuse to run inside a web page, except as the floating panel opened by VidSnag's own content
@@ -230,7 +253,7 @@ async function allowedToRun() {
   let framed = false;
   try { framed = window.top !== window && window.top.location.origin !== location.origin; } catch { framed = true; }
   if (!framed) return true;
-  if (ctx.mode !== 'float') return false;
+  if (ctx.mode !== 'dock') return false;
   const token = new URLSearchParams(location.hash.slice(1)).get('t') || '';
   window.history.replaceState(null, '', location.pathname + location.search); // don't leave the secret in the URL
   try { return await send({ type: 'check-float-token', token }); } catch { return false; }
@@ -256,16 +279,24 @@ async function init() {
   $('btnOptions').addEventListener('click', openSettings);
   $('btnSavePage').addEventListener('click', savePage);
   for (const b of document.querySelectorAll('.tabs button')) b.addEventListener('click', () => switchView(b.dataset.view));
-  const modeIcons = { max: 'max', mini: 'mini', unpinned: 'unpin' };
   for (const b of document.querySelectorAll('#modeSwitch button')) {
-    b.append(icon(modeIcons[b.dataset.mode]), document.createTextNode(` ${b.dataset.mode === 'unpinned' ? 'Unpin' : b.dataset.mode === 'max' ? 'Max' : 'Mini'}`));
+    b.append(icon(MODE_INFO[b.dataset.mode].icon));
     b.addEventListener('click', () => setPanelMode(b.dataset.mode));
   }
+  // Arrow keys move between the three mode buttons.
+  $('modeSwitch').addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const btns = [...document.querySelectorAll('#modeSwitch button')];
+    const i = btns.indexOf(document.activeElement);
+    btns[(i + (e.key === 'ArrowRight' ? 1 : -1) + btns.length) % btns.length]?.focus();
+  });
   $('modeSwitch').hidden = !MODE_PANELS.includes(ctx.mode);
-  $('btnPinBack').hidden = ctx.mode !== 'float';
-  $('btnPinBack').addEventListener('click', pinBack);
-  // Opening the sidebar or window means the user wants VidSnag pinned again.
-  if (MODE_PANELS.includes(ctx.mode) && ctx.settings.sidebarMode === 'unpinned') {
+  $('btnCloseDock').hidden = ctx.mode !== 'dock';
+  $('btnCloseDock').append(icon('close'));
+  $('btnCloseDock').addEventListener('click', closeDock);
+  applySettings(ctx.settings); // tooltips/active state now that the buttons exist
+  // Opening Chrome's side panel or a window means the user wants the sidebar pinned again.
+  if (['sidebar', 'window', 'pip'].includes(ctx.mode) && ctx.settings.sidebarMode === 'autohide') {
     await saveSettings({ sidebarMode: ctx.settings.lastPinnedMode || 'max' });
     applySettings(await getSettings());
   }

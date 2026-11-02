@@ -60,7 +60,7 @@ function preview() {
 
 async function save(patch = {}) {
   const values = { ...read(), ...patch };
-  if (values.sidebarMode && values.sidebarMode !== 'unpinned') values.lastPinnedMode = values.sidebarMode;
+  if (values.sidebarMode && values.sidebarMode !== 'autohide') values.lastPinnedMode = values.sidebarMode;
   const next = await saveSettings(values);
   current = next;
   flash('Saved ✓');

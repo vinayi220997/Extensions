@@ -213,91 +213,11 @@ await step('pause-resume', async () => {
   await p.close(); await page.close();
 });
 
-// ======================= Sidebar Max / Mini / Unpinned =======================
-await step('sidebar-modes', async () => {
-  const { page, tabId } = await openPage(`${BASE}/page-slow.html`);
-  const sb = await panel(tabId, '&mode=sidebar', { width: 360, height: 640 });
-  check('Sidebar shows Max / Mini / Unpin controls', (await sb.locator('#modeSwitch button').count()) === 3 && await sb.locator('#modeSwitch').isVisible());
-  await sb.locator('#modeSwitch button[data-mode="mini"]').click();
-  await sb.waitForTimeout(600);
-  const mini = await sb.evaluate(() => ({ mini: document.body.classList.contains('mini'), cards: document.querySelectorAll('.mini-card').length, tabsHidden: getComputedStyle(document.querySelector('.tabs')).display === 'none' }));
-  check('Mini mode: compact cards, extras hidden', mini.mini && mini.cards === 2 && mini.tabsHidden, JSON.stringify(mini));
-  const info = await waitFor(async () => {
-    const t = await sb.locator('.mini-card', { hasText: 'Slow MP4' }).locator('.mini-info').innerText();
-    return /\d+:\d\d · 2\.3 MB · 720p/.test(t) ? t : null;
-  }, 15000) || await sb.locator('.mini-card', { hasText: 'Slow MP4' }).locator('.mini-info').innerText();
-  check('Mini card shows duration · size · quality', /\d+:\d\d · 2\.3 MB · 720p/.test(info), info);
-  await sb.screenshot({ path: path.join(OUT, 'mini.png') });
-
-  // Download from Mini: circular ring, then square when paused
-  await setSettings({ maxConcurrentSegments: 1 });
-  await sb.locator('.mini-card').filter({ hasText: 'HLS' }).locator('.mini-go').click();
-  const ringOk = await waitFor(async () => sb.evaluate(() => {
-    const bar = document.querySelector('.mini-frame.st-active .ring circle.bar');
-    return bar && parseFloat(getComputedStyle(bar).strokeDashoffset) < 100 ? getComputedStyle(bar).strokeDashoffset : null;
-  }), 20000, 400);
-  check('Mini: circular progress ring around the thumbnail while downloading', !!ringOk, ringOk);
-  await sb.screenshot({ path: path.join(OUT, 'mini-progress.png') });
-  await sb.locator('.mini-card').filter({ hasText: 'HLS' }).locator('.icon-btn[aria-label="Pause download"]').click();
-  const sq = await waitFor(async () => sb.evaluate(() => !!document.querySelector('.mini-frame.st-paused .ring.paused rect.bar') && !!document.querySelector('.mini-frame.st-paused .ring .glyph')), 5000);
-  check('Mini: paused → square pause indicator', !!sq);
-  await sb.screenshot({ path: path.join(OUT, 'mini-paused.png') });
-  await sb.locator('.mini-card').filter({ hasText: 'HLS' }).locator('.icon-btn[aria-label="Resume download"]').click();
-  const back = await waitFor(async () => sb.evaluate(() => !!document.querySelector('.mini-frame.st-active .ring circle.bar') || !!document.querySelector('.mini-badge.ok')), 5000);
-  check('Mini: resume → circle again (or finished ✓)', !!back);
-  await waitFor(async () => sb.evaluate(() => !!document.querySelector('.mini-badge.ok')), 30000);
-  check('Mini: finished download shows ✓ badge', await sb.evaluate(() => !!document.querySelector('.mini-badge.ok')));
-  await setSettings({ maxConcurrentSegments: 4 });
-
-  // Mode remembered
-  await sb.reload(); await sb.waitForTimeout(700);
-  check('Last mode remembered (Mini after reopening)', await sb.evaluate(() => document.body.classList.contains('mini')) && (await sb.locator('#modeSwitch button[data-mode="mini"].active').count()) === 1);
-  // Max again
-  await sb.locator('#modeSwitch button[data-mode="max"]').click();
-  await sb.waitForTimeout(500);
-  check('Max mode: full interface back', !(await sb.evaluate(() => document.body.classList.contains('mini'))) && await sb.locator('.tabs').isVisible());
-  await sb.locator('#modeSwitch button[data-mode="mini"]').click();
-  await sb.waitForTimeout(300);
-
-  // Unpin → floating indicator on pages
-  await sb.locator('#modeSwitch button[data-mode="unpinned"]').click();
-  await sleep(1200);
-  const s = await settings();
-  check('Unpin saves the mode (and remembers Mini for pinning back)', s.sidebarMode === 'unpinned' && s.lastPinnedMode === 'mini', JSON.stringify({ m: s.sidebarMode, l: s.lastPinnedMode }));
-  if (!sb.isClosed()) await sb.close(); // Unpin closes the real side panel; the test tab stand-in closes here
-  await page.bringToFront();
-  const ind = page.locator('vidsnag-indicator');
-  await ind.waitFor({ state: 'attached', timeout: 5000 }).catch(() => {});
-  check('Floating indicator appears at the page edge', (await ind.count()) === 1 && (await ind.evaluate((el) => getComputedStyle(el).position)) === 'fixed');
-  const box = await ind.boundingBox();
-  check('Indicator is small and at the right edge (doesn’t cover the page)', box && box.width <= 40 && box.x + box.width >= 1098, JSON.stringify(box));
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.waitForTimeout(1500);
-  check('Hover expands the compact panel', (await ind.getAttribute('data-expanded')) === 'true');
-  const frame = await waitFor(async () => page.frames().find((f) => f.url().includes('mode=float')), 5000);
-  const fcards = frame ? await waitFor(async () => (await frame.locator('.mini-card').count()) || null, 6000) : 0;
-  check('Expanded panel shows this page’s media in Mini layout', fcards >= 2, String(fcards));
-  await page.screenshot({ path: path.join(OUT, 'float.png') });
-  await page.mouse.move(200, 300);
-  await page.waitForTimeout(900);
-  check('Moving away collapses it again', (await ind.getAttribute('data-expanded')) === 'false');
-  // Pin again from the indicator
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.waitForTimeout(1200);
-  // Real-mouse clicks into this extension frame are verified separately (headless input routing into
-  // an iframe inside a closed shadow root is unreliable mid-session); here the button is triggered directly.
-  await frame.evaluate(() => document.getElementById('btnPinBack').click());
-  await waitFor(async () => (await settings()).sidebarMode !== 'unpinned', 8000);
-  await sleep(500);
-  const s2 = await settings();
-  check('Pin restores the last mode and removes the indicator', s2.sidebarMode === 'mini' && (await page.locator('vidsnag-indicator').count()) === 0, s2.sidebarMode);
-  await setSettings({ sidebarMode: 'max', lastPinnedMode: 'max' });
-  await page.close();
-});
+// Sidebar Max / Mini / Auto-hide: see test4.mjs
 
 await step('frame-guard', async () => {
   const { page } = await openPage(`${BASE}/page-mp4.html`, 1500);
-  for (const q of ['mode=tab&view=library', 'mode=float']) {
+  for (const q of ['mode=tab&view=library', 'mode=dock']) {
     await page.evaluate(([id, q]) => { const f = document.createElement('iframe'); f.id = 'evil'; f.src = `chrome-extension://${id}/popup/popup.html?${q}`; document.body.append(f); }, [extId, q]);
     await page.waitForTimeout(1500);
     const fr = page.frames().find((f) => f.url().includes('popup.html'));

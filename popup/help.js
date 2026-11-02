@@ -63,9 +63,12 @@ const SECTIONS = [
   ]],
   ['Sidebar, window and pinning', false, () => [
     ul(
-      [b('Max / Mini / Unpin'), ' (top of the sidebar or window): Max shows everything; Mini only the essentials — thumbnail with a round progress ring (square while paused), size, duration and a download button; Unpin closes the sidebar and leaves a small VidSnag tab at the right edge of every page. Hover it to open the Mini panel, move away to close it, drag it up or down, and press ', b('Pin'), ' to bring the sidebar back. VidSnag remembers your last mode.'],
+      [b('Page sidebar'), ': VidSnag\u2019s own sidebar docked at the right edge of web pages. Show it from the panel menu, the right-click menu, or make it the toolbar icon\u2019s default (Settings › Appearance › Default panel). Close it with ×.'],
+      ['Three icon buttons at the top switch its mode (hover them for a tooltip): ', b('Max'), ' — the full sidebar (drag its left edge to resize); ', b('Mini'), ' — a narrow column (5–10 % of the window) with thumbnail, progress ring (square while paused), duration, size and a download button; ', b('Auto-hide'), ' — only a small arrow handle at the edge. Hover or click the handle (your choice in Settings › Sidebar) to slide the sidebar out; click the Auto-hide button again to pin it back at its previous size.'],
+      ['VidSnag remembers the mode, both widths, the handle position and the auto-hide trigger. The page is shrunk next to the sidebar so nothing is covered (or choose Overlay).'],
+      [b('Toolbar pin is separate'), ': pinning the VidSnag icon to Chrome\u2019s toolbar is done in Chrome\u2019s puzzle-piece menu. VidSnag never changes it, and sidebar modes don\u2019t affect it.'],
       ['The panel button (next to Help) opens VidSnag as a ', b('popup'), ', in the ', b('sidebar'), ', a ', b('separate window'), ' or a ', b('tab'), '.'],
-      [b('Pin on top'), ' keeps a small VidSnag window above other windows (Chrome Picture-in-Picture). Use it from the window or sidebar view; click again to unpin.'],
+      [b('Keep on top'), ' (panel menu) keeps a small VidSnag window above other windows using Chrome Picture-in-Picture. Use it from the window view.'],
       ['Settings › Appearance › Default panel decides what the toolbar icon opens.'])
   ]],
   ['Right-click menu & shortcuts', false, () => [

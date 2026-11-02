@@ -508,7 +508,7 @@ await step('settings-appearance-panels', async () => {
   const pipSupported = await sidebar.evaluate(() => 'documentPictureInPicture' in window);
   check('Pin on top: Document Picture-in-Picture API available in panel pages', true, pipSupported ? 'available' : 'not available in headless — pin falls back with a message');
   const menuLabels = await (async () => { await sidebar.click('#btnPanel'); await sidebar.waitForTimeout(150); return sidebar.locator('.menu button').allInnerTexts(); })();
-  check('Panel menu: popup / sidebar / window / tab / pin', ['Sidebar', 'Separate window', 'New tab', 'Keep on top'].every((x) => menuLabels.some((l) => l.includes(x))), menuLabels.join(' | '));
+  check('Panel menu: popup / sidebar / window / tab / pin', ['Page sidebar', 'Chrome side panel', 'Separate window', 'New tab', 'Keep on top'].every((x) => menuLabels.some((l) => l.includes(x))), menuLabels.join(' | '));
   await sidebar.close();
   await setSettings({ theme: 'system', previewMode: 'image', windowSize: 'M', textSize: 'M', settingsOpenIn: 'tab', accent: 'teal', mergeAudio: true });
   await p.close(); await page.close(); await o.close();

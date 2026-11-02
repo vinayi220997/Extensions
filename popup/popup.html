@@ -13,17 +13,17 @@
       <img src="../icons/icon32.png" alt="" width="22" height="22">
       <span>VidSnag</span>
     </div>
-    <div class="mode-switch" id="modeSwitch" role="group" aria-label="Panel mode" hidden>
-      <button data-mode="max" title="Max — full interface" aria-label="Max mode"></button>
-      <button data-mode="mini" title="Mini — compact" aria-label="Mini mode"></button>
-      <button data-mode="unpinned" title="Unpin — hide to a small indicator at the page edge" aria-label="Unpin"></button>
+    <div class="mode-switch" id="modeSwitch" role="toolbar" aria-label="Sidebar display mode" hidden>
+      <button data-mode="max" aria-pressed="false"></button>
+      <button data-mode="mini" aria-pressed="false"></button>
+      <button data-mode="autohide" aria-pressed="false"></button>
     </div>
-    <button class="btn small primary" id="btnPinBack" hidden>Pin</button>
     <div class="top-actions">
       <button class="icon-btn" id="btnSavePage" title="Save this page to Saved links" aria-label="Save this page"></button>
       <button class="icon-btn" id="btnPanel" title="Sidebar, window or pin" aria-label="Panel options" aria-haspopup="menu"></button>
       <button class="icon-btn" id="btnHelp" title="Help" aria-label="Help"></button>
       <button class="icon-btn" id="btnOptions" title="Settings" aria-label="Settings"></button>
+      <button class="icon-btn" id="btnCloseDock" title="Close the page sidebar" aria-label="Close the page sidebar" hidden></button>
     </div>
   </header>
 
