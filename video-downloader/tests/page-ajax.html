@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><title>SPA feed</title></head><body><h1>Feed</h1><div id="feed"></div>
+<script>
+// Single-page app: videos are named in JSON API responses (fetch + XHR); nothing is in the HTML.
+fetch('/api/feed.json').then((r) => r.json()).then((j) => { document.getElementById('feed').textContent = j.data.length + ' posts'; });
+const x = new XMLHttpRequest(); x.open('GET', '/api/xhr.json'); x.send();
+</script></body></html>
