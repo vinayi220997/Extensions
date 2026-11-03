@@ -28,6 +28,7 @@ Requires Chrome 120 or newer. The same folder also loads in Edge and Brave.
 - **More formats:** MPEG (.mpg/.mpeg), 3G2, F4V and ASF were added. Whole .ts/.m2ts/.mts recordings over 25 MB are now listed, while HLS segments stay hidden.
 - **New filters:** All · MP4 · HLS · DASH · Other · Audio · DRM. Only formats present on the page get a chip.
 - Research notes on how the DRM detection was built are in `docs/DRM-research.md`.
+- A checklist of 719 features with what VidPull has and usefulness scores for the missing ones is in [`docs/feature-audit/`](docs/feature-audit/).
 
 ## What was new in 3.0 — VidPull
 

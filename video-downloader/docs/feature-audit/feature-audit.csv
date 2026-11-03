@@ -1,0 +1,720 @@
+Section,Feature,Status,Usefulness score (1-10),Effort (S/M/L),What VidPull has / notes
+1. Core Features,Automatic video detection,Available,,,"Network + DOM + player probes + AJAX/JSON, all frames"
+1. Core Features,One-click video download,Available,,,Download button uses your default quality/format
+1. Core Features,Multiple video detection,Available,,,"Network + DOM + player probes + AJAX/JSON, all frames"
+1. Core Features,Video resolution selection,Available,,,Quality dropdown per card; preferred format in Settings
+1. Core Features,Video format selection,Available,,,Quality dropdown per card; preferred format in Settings
+1. Core Features,MP4 download,Available,,,
+1. Core Features,WebM download,Available,,,
+1. Core Features,Audio-only download,Available,,,Download audio / audio-only variants; ‘Always download audio’
+1. Core Features,Video preview,Available,,,"Poster/thumbnail, optional hover video preview"
+1. Core Features,Download progress indicator,Available,,,"Progress bar, %, segments, bytes"
+1. Core Features,Download speed indicator,Not available,8,S,Bytes are shown but not MB/s
+1. Core Features,Estimated file size,Available,,,Exact or ~estimated from bitrate
+1. Core Features,Download history,Available,,,"History tab, 30 days by default"
+1. Core Features,Pause download,Available,,,Pause/Resume on segment and file downloads (not live)
+1. Core Features,Resume download,Available,,,Pause/Resume on segment and file downloads (not live)
+1. Core Features,Cancel download,Available,,,
+1. Core Features,Batch download,Partial,9,M,Download from Saved links list; no ‘Download all’ / multi-select on the media list
+1. Core Features,Custom filename,Available,,,"Rename, template tokens {title} {res} {host} {date} {time} {selector}, Smart naming"
+1. Core Features,Custom download location,Partial,4,S,Subfolder inside Downloads + ‘Save as’ dialog; can't pick an arbitrary folder (Chrome limit)
+1. Core Features,Download notifications,Available,,,Chrome notifications (toggle in Settings)
+1. Core Features,Video duration detection,Available,,,
+1. Core Features,Video thumbnail preview,Available,,,"Poster/thumbnail, optional hover video preview"
+1. Core Features,Video metadata display,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+1. Core Features,Download completed status,Available,,,
+1. Core Features,Download failed status,Available,,,
+2. Video Detection Features,HTML5 video detection,Available,,,
+2. Video Detection Features,Embedded video detection,Available,,,
+2. Video Detection Features,Iframe video detection,Available,,,
+2. Video Detection Features,Dynamic video detection,Available,,,
+2. Video Detection Features,JavaScript-loaded video detection,Available,,,
+2. Video Detection Features,HLS stream detection (M3U8),Available,,,
+2. Video Detection Features,MPEG-DASH detection (MPD),Available,,,
+2. Video Detection Features,MP4 stream detection,Available,,,
+2. Video Detection Features,WebM stream detection,Available,,,
+2. Video Detection Features,Audio stream detection,Available,,,
+2. Video Detection Features,Live stream detection,Available,,,Marked Live; HLS live recording
+2. Video Detection Features,Multiple quality detection,Available,,,
+2. Video Detection Features,Video codec detection,Available,,,"Codec shown on card (H.264, AAC, …)"
+2. Video Detection Features,Audio codec detection,Available,,,"Codec shown on card (H.264, AAC, …)"
+2. Video Detection Features,Resolution detection,Available,,,
+2. Video Detection Features,Frame rate detection,Partial,4,S,"Parsed from HLS FRAME-RATE, not shown in UI"
+2. Video Detection Features,Video duration detection,Available,,,
+2. Video Detection Features,Video bitrate detection,Partial,3,S,"Bandwidth parsed (used for size estimate), not shown as a number"
+2. Video Detection Features,Subtitle track detection,Not available,8,M,Subtitle tracks are skipped
+2. Video Detection Features,Multiple audio track detection,Partial,6,M,HLS alternate audio + DASH audio reps listed as ‘Audio only · name’; no language switcher
+2. Video Detection Features,Video thumbnail detection,Available,,,
+2. Video Detection Features,Poster image detection,Available,,,
+2. Video Detection Features,Duplicate source detection,Available,,,URL normalisation + child-playlist de-duplication
+2. Video Detection Features,Automatic detection refresh,Available,,,"MutationObserver, SPA navigation, Refresh list"
+2. Video Detection Features,Infinite scroll video detection,Available,,,Lazy/scroll-loaded videos and AJAX feeds
+2. Video Detection Features,Single-page application support,Available,,,"MutationObserver, SPA navigation, Refresh list"
+2. Video Detection Features,Video source information,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+2. Video Detection Features,Media compatibility detection,Partial,4,M,Shows DRM/live/separate-audio limits; no ‘will it play on my device’ check
+3. Download Management,Download queue management,Available,,,Jobs queued and started automatically
+3. Download Management,Multiple simultaneous downloads,Available,,,
+3. Download Management,Configurable download concurrency,Partial,5,S,Segment concurrency is configurable; number of parallel jobs is not
+3. Download Management,Pause all downloads,Not available,6,S,Not built
+3. Download Management,Resume all downloads,Not available,6,S,Not built
+3. Download Management,Cancel all downloads,Not available,6,S,Not built
+3. Download Management,Retry failed downloads,Available,,,Retry on failed card; Download again from History
+3. Download Management,Automatic retry,Available,,,Segments retried 4× with timeout; job survives service-worker restarts
+3. Download Management,Download prioritization,Not available,3,M,Not built
+3. Download Management,Queue reordering,Not available,3,M,Not built
+3. Download Management,Download scheduling,Not available,3,M,Not built
+3. Download Management,Download speed limiter,Not available,3,M,Not built
+3. Download Management,Bandwidth management,Not available,3,M,Not built
+3. Download Management,Download status tracking,Available,,,
+3. Download Management,Failed download management,Available,,,"Downloads tab: retry, open, show in folder, clear finished"
+3. Download Management,Completed download management,Available,,,"Downloads tab: retry, open, show in folder, clear finished"
+3. Download Management,Automatic download recovery,Available,,,Interrupted jobs resumed/re-queued after browser or worker restart
+3. Download Management,Duplicate download prevention,Partial,7,S,Same job isn't started twice; no warning when the file was downloaded before
+3. Download Management,Download folder organization,Partial,7,S,One fixed subfolder; no {host}/{date} folders
+3. Download Management,Download history search,Available,,,
+3. Download Management,Clear download history,Available,,,
+3. Download Management,Re-download previous videos,Available,,,Retry on failed card; Download again from History
+3. Download Management,Export download history,Not available,4,S,"Backup has settings/rules/addons/saved links, not history"
+3. Download Management,Import download history,Not available,4,S,"Backup has settings/rules/addons/saved links, not history"
+3. Download Management,Import/export settings,Available,,,Settings › Backup (JSON)
+3. Download Management,Download notifications,Available,,,Chrome notifications (toggle in Settings)
+3. Download Management,Download completion alerts,Available,,,Chrome notifications (toggle in Settings)
+3. Download Management,Download queue statistics,Not available,3,S,Not built
+3. Download Management,Download time estimation,Not available,7,S,Not built
+3. Download Management,File integrity verification,Partial,4,M,"Segment errors, >35%-bad abort, size checks; no checksum/playback verification"
+3. Download Management,Incomplete download detection,Partial,4,M,"Segment errors, >35%-bad abort, size checks; no checksum/playback verification"
+4. Video Quality And Format,144p resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,240p resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,360p resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,480p resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,720p HD resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,1080p Full HD resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,1440p 2K resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,2160p 4K resolution,Available,,,Whatever the source offers; default 360p–2160p/highest/lowest
+4. Video Quality And Format,Automatic best-quality selection,Available,,,Default resolution ‘Highest’ / up to N
+4. Video Quality And Format,Lowest-quality selection,Available,,,Default resolution ‘Lowest’
+4. Video Quality And Format,Custom bitrate selection,Partial,2,M,Pick a variant (labels show bitrate for audio); no free bitrate target
+4. Video Quality And Format,Frame rate selection,Partial,2,S,Any frame rate downloads as-is; no fps filter
+4. Video Quality And Format,24 FPS support,Partial,2,S,Any frame rate downloads as-is; no fps filter
+4. Video Quality And Format,30 FPS support,Partial,2,S,Any frame rate downloads as-is; no fps filter
+4. Video Quality And Format,60 FPS support,Partial,2,S,Any frame rate downloads as-is; no fps filter
+4. Video Quality And Format,Codec selection,Partial,4,M,Codecs shown per quality; no codec preference
+4. Video Quality And Format,H.264 support,Available,,,
+4. Video Quality And Format,H.265/HEVC support,Partial,3,M,Downloaded as-is when the site offers them; no special handling
+4. Video Quality And Format,AV1 support,Partial,3,M,Downloaded as-is when the site offers them; no special handling
+4. Video Quality And Format,MP4 format,Available,,,
+4. Video Quality And Format,WebM format,Available,,,
+4. Video Quality And Format,MKV format where supported,Partial,2,M,"Detects/downloads MKV files; output is MP4/TS/WebM, never MKV"
+4. Video Quality And Format,Audio format selection,Available,,,Download audio / audio-only variants; ‘Always download audio’
+4. Video Quality And Format,MP3 extraction,Not available,7,M,Audio saved as M4A/AAC (no MP3 encoder)
+4. Video Quality And Format,AAC extraction,Available,,,M4A/AAC audio
+4. Video Quality And Format,WAV extraction,Not available,2,M,Not built
+4. Video Quality And Format,Audio/video stream merging,Available,,,Merge audio into one MP4
+4. Video Quality And Format,Separate audio/video detection,Available,,,
+4. Video Quality And Format,Metadata preservation,Partial,3,M,Container data kept; title/artist tags not written
+4. Video Quality And Format,Subtitle extraction,Not available,7,M,Not built
+4. Video Quality And Format,Thumbnail extraction,Partial,3,S,"Poster shown, can open/copy; not saved alongside the video"
+4. Video Quality And Format,Video compression,Not available,4,L,Needs ffmpeg.wasm (~30 MB) or the helper app
+4. Video Quality And Format,Video conversion,Not available,4,L,Needs ffmpeg.wasm (~30 MB) or the helper app
+4. Video Quality And Format,Audio normalization,Not available,1,L,Not built
+4. Video Quality And Format,Video quality comparison,Partial,4,M,Codecs shown per quality; no codec preference
+5. Smart Features,Floating download button,Partial,7,M,Page sidebar + edge handle; no button on top of each video
+5. Smart Features,Right-click download menu,Available,,,
+5. Smart Features,Keyboard shortcuts,Available,,,"Alt+Shift+V open, Alt+Shift+D download best, sidebar shortcut; arrow keys in panels"
+5. Smart Features,Quick download popup,Available,,,
+5. Smart Features,Download button overlay,Partial,7,M,Page sidebar + edge handle; no button on top of each video
+5. Smart Features,Automatic overlay visibility,Partial,7,M,Page sidebar + edge handle; no button on top of each video
+5. Smart Features,Dark mode,Available,,,System/Light/Dark
+5. Smart Features,Light mode,Available,,,System/Light/Dark
+5. Smart Features,Custom themes,Partial,2,M,Light/dark + 7 accent colours + custom colour; no full theme editor
+5. Smart Features,Custom accent colors,Available,,,
+5. Smart Features,Compact mode,Available,,,"Mini sidebar, S/M/L text and window size"
+5. Smart Features,Full dashboard,Available,,,"Max sidebar, tab view"
+5. Smart Features,Recently detected videos,Available,,,
+5. Smart Features,Favorite videos,Not available,4,S,Saved links has categories but no ★ favourites
+5. Smart Features,Download statistics,Not available,4,M,Not built
+5. Smart Features,Daily download count,Not available,4,M,Not built
+5. Smart Features,Total downloaded storage,Not available,4,M,Not built
+5. Smart Features,Website-specific settings,Available,,,"Per-site rules: default action, naming"
+5. Smart Features,Custom download rules,Available,,,"Per-site rules: default action, naming"
+5. Smart Features,Website whitelist,Not available,6,S,Not built
+5. Smart Features,Website blacklist,Not available,6,S,Not built
+5. Smart Features,Multi-language support,Not available,5,L,English only
+5. Smart Features,Custom notifications,Partial,3,S,On/off only
+5. Smart Features,First-time user tutorial,Not available,5,M,Not built
+5. Smart Features,Tooltips and help guides,Available,,,Tooltips + Help screen
+5. Smart Features,Quick settings,Available,,,Panel menu + mode controls
+5. Smart Features,Custom video filters,Available,,,Filters All/MP4/HLS/DASH/Other/Audio/DRM + search
+5. Smart Features,Video sorting,Available,,,Media list sorting (name/date/duration/size/quality/site/status)
+5. Smart Features,Video search,Available,,,
+6. Advanced Download Engine,Automatic best-quality selection,Available,,,Default resolution ‘Highest’ / up to N
+6. Advanced Download Engine,Automatic best-format selection,Available,,,Preferred format MP4/WebM/any
+6. Advanced Download Engine,Smart download queue optimization,Not available,3,M,Not built
+6. Advanced Download Engine,Adaptive download concurrency,Not available,3,M,Not built
+6. Advanced Download Engine,Network-aware download settings,Not available,3,M,Not built
+6. Advanced Download Engine,Automatic failed download retry,Available,,,Segments retried 4× with timeout; job survives service-worker restarts
+6. Advanced Download Engine,Incomplete download detection,Partial,4,M,"Segment errors, >35%-bad abort, size checks; no checksum/playback verification"
+6. Advanced Download Engine,File integrity checking,Partial,4,M,"Segment errors, >35%-bad abort, size checks; no checksum/playback verification"
+6. Advanced Download Engine,Corrupted media detection,Partial,4,M,"Segment errors, >35%-bad abort, size checks; no checksum/playback verification"
+6. Advanced Download Engine,Automatic audio/video merging,Available,,,Merge audio into one MP4
+6. Advanced Download Engine,HTTP Range-based download resumption,Available,,,Byte-range resume for files
+6. Advanced Download Engine,Download speed analytics,Not available,3,M,Not built
+6. Advanced Download Engine,Bandwidth usage monitoring,Not available,3,M,Not built
+6. Advanced Download Engine,Automatic filename generation,Available,,,"Rename, template tokens {title} {res} {host} {date} {time} {selector}, Smart naming"
+6. Advanced Download Engine,Smart download prioritization,Not available,3,M,Not built
+6. Advanced Download Engine,Download performance monitoring,Not available,3,M,Not built
+6. Advanced Download Engine,Network interruption recovery,Available,,,Segments retried 4× with timeout; job survives service-worker restarts
+6. Advanced Download Engine,Download error reporting,Available,,,Clear error text on failed jobs
+6. Advanced Download Engine,Connection status monitoring,Not available,3,M,Not built
+7. Advanced Stream Support,HLS playlist parsing,Available,,,
+7. Advanced Stream Support,MPEG-DASH manifest parsing,Available,,,
+7. Advanced Stream Support,Separate audio stream identification,Partial,6,M,HLS alternate audio + DASH audio reps listed as ‘Audio only · name’; no language switcher
+7. Advanced Stream Support,Separate video stream identification,Available,,,
+7. Advanced Stream Support,Stream quality identification,Available,,,
+7. Advanced Stream Support,Live stream identification,Available,,,Marked Live; HLS live recording
+7. Advanced Stream Support,Subtitle track identification,Not available,8,M,Subtitle tracks are skipped
+7. Advanced Stream Support,Multiple audio track detection,Partial,6,M,HLS alternate audio + DASH audio reps listed as ‘Audio only · name’; no language switcher
+7. Advanced Stream Support,Language track selection,Not available,6,M,Not built
+7. Advanced Stream Support,Authorized segment-based downloading,Available,,,"HLS (incl. AES-128) + DASH, segment by segment"
+7. Advanced Stream Support,Stream metadata inspection,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+7. Advanced Stream Support,DRM status identification,Available,,,"3.1: system, scheme, licence server, statuses"
+7. Advanced Stream Support,Media compatibility reporting,Partial,4,M,Shows DRM/live/separate-audio limits; no ‘will it play on my device’ check
+7. Advanced Stream Support,Supported stream diagnostics,Partial,6,M,DRM/MSE notices + provider notice; no full diagnostic report
+8. Smart Download Rules,Automatically download videos above 1080p,Not available,3,M,No auto-download rules
+8. Smart Download Rules,Automatically select MP4,Available,,,Preferred format MP4/WebM/any
+8. Smart Download Rules,Automatically select highest quality,Available,,,Default resolution ‘Highest’ / up to N
+8. Smart Download Rules,Automatically select lowest file size,Available,,,Default resolution ‘Lowest’
+8. Smart Download Rules,Automatically download audio-only files,Available,,,‘Always download audio’ (global or per site)
+8. Smart Download Rules,Automatically skip duplicate files,Partial,7,S,Same job isn't started twice; no warning when the file was downloaded before
+8. Smart Download Rules,Automatically rename downloaded videos,Available,,,Filename template {res}
+8. Smart Download Rules,Automatically organize files by website,Partial,7,S,One fixed subfolder; no {host}/{date} folders
+8. Smart Download Rules,Automatically create folders by date,Partial,7,S,One fixed subfolder; no {host}/{date} folders
+8. Smart Download Rules,Automatically add website name to filename,Available,,,{host} token
+8. Smart Download Rules,Automatically add resolution to filename,Available,,,Filename template {res}
+8. Smart Download Rules,Automatically clean old download records,Available,,,History keeps N days
+8. Smart Download Rules,Automatically prioritize high-quality downloads,Not available,3,M,Not built
+8. Smart Download Rules,Automatically retry failed downloads,Available,,,Segments retried 4× with timeout; job survives service-worker restarts
+8. Smart Download Rules,Automatically apply website-specific settings,Available,,,"Per-site rules: default action, naming"
+8. Smart Download Rules,Automatically select preferred audio language,Not available,6,M,Not built
+8. Smart Download Rules,Automatically select subtitle language,Not available,4,M,Not built
+9. Ai-Powered Features,AI video title generation,Not available,3,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI video summarization,Not available,4,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI chapter detection,Not available,3,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI subtitle generation,Not available,6,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI language detection,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI subtitle translation,Not available,5,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI thumbnail analysis,Not available,1,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI filename generation,Not available,3,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI duplicate video detection,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI video categorization,Not available,3,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI-powered video search,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI tag generation,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI keyword extraction,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI content classification,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI video description generation,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI speech transcription,Not available,6,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI timestamp generation,Not available,3,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI metadata enhancement,Not available,2,M,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,AI library organization,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+9. Ai-Powered Features,Natural language video search,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+10. Popup Dashboard Ui,Detected videos count,Available,,,Badge + Media tab count
+10. Popup Dashboard Ui,Current webpage information,Available,,,"Footer host, page thumbnail"
+10. Popup Dashboard Ui,Video thumbnail,Available,,,
+10. Popup Dashboard Ui,Video title,Available,,,
+10. Popup Dashboard Ui,Resolution badge,Available,,,
+10. Popup Dashboard Ui,File size display,Available,,,Exact or ~estimated from bitrate
+10. Popup Dashboard Ui,Format information,Available,,,
+10. Popup Dashboard Ui,Video duration,Available,,,
+10. Popup Dashboard Ui,Download button,Available,,,
+10. Popup Dashboard Ui,Download all button,Not available,9,M,Not built
+10. Popup Dashboard Ui,Refresh detection button,Available,,,
+10. Popup Dashboard Ui,Settings shortcut,Available,,,
+10. Popup Dashboard Ui,Active downloads preview,Available,,,
+10. Popup Dashboard Ui,Recent download preview,Available,,,"History tab, 30 days by default"
+10. Popup Dashboard Ui,Empty state design,Available,,,
+10. Popup Dashboard Ui,Loading state,Available,,,
+10. Popup Dashboard Ui,Error state,Available,,,
+10. Popup Dashboard Ui,Quick download actions,Available,,,
+11. Download Manager Dashboard,Active downloads section,Available,,,Downloads tab
+11. Download Manager Dashboard,Queued downloads section,Partial,4,S,One list with status per card; no separate sections
+11. Download Manager Dashboard,Completed downloads section,Partial,4,S,One list with status per card; no separate sections
+11. Download Manager Dashboard,Failed downloads section,Partial,4,S,One list with status per card; no separate sections
+11. Download Manager Dashboard,Download progress bars,Available,,,"Progress bar, %, segments, bytes"
+11. Download Manager Dashboard,Download speed indicators,Not available,8,S,Bytes are shown but not MB/s
+11. Download Manager Dashboard,Remaining time estimation,Not available,7,S,Not built
+11. Download Manager Dashboard,Search and filter,Available,,,Filters All/MP4/HLS/DASH/Other/Audio/DRM + search
+11. Download Manager Dashboard,Sort by date,Available,,,Media list sorting (name/date/duration/size/quality/site/status)
+11. Download Manager Dashboard,Sort by file size,Available,,,Media list sorting (name/date/duration/size/quality/site/status)
+11. Download Manager Dashboard,Sort by website,Available,,,Media list sorting (name/date/duration/size/quality/site/status)
+11. Download Manager Dashboard,Sort by resolution,Available,,,Media list sorting (name/date/duration/size/quality/site/status)
+11. Download Manager Dashboard,Grid view,Available,,,Media list
+11. Download Manager Dashboard,List view,Available,,,Media list
+11. Download Manager Dashboard,Bulk actions,Partial,9,M,Download from Saved links list; no ‘Download all’ / multi-select on the media list
+11. Download Manager Dashboard,Pause all,Not available,6,S,Not built
+11. Download Manager Dashboard,Resume all,Not available,6,S,Not built
+11. Download Manager Dashboard,Cancel all,Not available,6,S,Not built
+11. Download Manager Dashboard,Retry all failed,Not available,5,S,Not built
+11. Download Manager Dashboard,Clear completed downloads,Available,,,
+11. Download Manager Dashboard,Open downloaded file,Available,,,
+11. Download Manager Dashboard,Show file in folder,Available,,,
+11. Download Manager Dashboard,Copy video information,Available,,,Details › Copy all as JSON
+12. Settings Dashboard,General settings,Available,,,
+12. Settings Dashboard,Download settings,Available,,,
+12. Settings Dashboard,Video detection settings,Available,,,
+12. Settings Dashboard,Appearance settings,Available,,,
+12. Settings Dashboard,Notification settings,Partial,3,S,On/off only
+12. Settings Dashboard,Privacy settings,Not available,4,S,No incognito/private mode option (history can be turned off)
+12. Settings Dashboard,Website permissions,Partial,5,M,"Uses all-sites access; per-site rules, no per-site on/off"
+12. Settings Dashboard,Advanced settings,Available,,,
+12. Settings Dashboard,Keyboard shortcut settings,Partial,2,S,Changed at chrome://extensions/shortcuts (Chrome); not inside VidPull
+12. Settings Dashboard,Import configuration,Available,,,Settings › Backup (JSON)
+12. Settings Dashboard,Export configuration,Available,,,Settings › Backup (JSON)
+12. Settings Dashboard,Reset settings,Available,,,
+12. Settings Dashboard,Default resolution,Available,,,
+12. Settings Dashboard,Default video format,Available,,,
+12. Settings Dashboard,Default download folder,Partial,4,S,Subfolder inside Downloads + ‘Save as’ dialog; can't pick an arbitrary folder (Chrome limit)
+12. Settings Dashboard,Maximum concurrent downloads,Partial,5,S,Segment concurrency is configurable; number of parallel jobs is not
+12. Settings Dashboard,Automatic download preferences,Available,,,
+12. Settings Dashboard,Filename templates,Available,,,"Rename, template tokens {title} {res} {host} {date} {time} {selector}, Smart naming"
+13. Privacy And Security,No unnecessary tracking,Available,,,No analytics; everything in chrome.storage on your PC
+13. Privacy And Security,No unnecessary browsing history collection,Available,,,No analytics; everything in chrome.storage on your PC
+13. Privacy And Security,Local download history storage,Available,,,No analytics; everything in chrome.storage on your PC
+13. Privacy And Security,Secure settings storage,Available,,,No analytics; everything in chrome.storage on your PC
+13. Privacy And Security,Minimal browser permissions,Partial,3,M,Needs broad host access to detect video; userScripts optional
+13. Privacy And Security,Clear permission explanations,Partial,3,S,Help explains some; no dedicated permissions page
+13. Privacy And Security,Website permission management,Partial,5,M,"Uses all-sites access; per-site rules, no per-site on/off"
+13. Privacy And Security,Privacy mode,Not available,4,S,No incognito/private mode option (history can be turned off)
+13. Privacy And Security,Clear extension data,Partial,4,S,Clear history/list/saved links + history days; no single ‘erase everything’
+13. Privacy And Security,Secure URL handling,Available,,,"Sanitised filenames, http(s) only, frame token for embedded UI"
+13. Privacy And Security,Malicious filename protection,Available,,,"Sanitised filenames, http(s) only, frame token for embedded UI"
+13. Privacy And Security,Safe file extension validation,Available,,,"Sanitised filenames, http(s) only, frame token for embedded UI"
+13. Privacy And Security,No execution of downloaded files,Available,,,"Sanitised filenames, http(s) only, frame token for embedded UI"
+13. Privacy And Security,Transparent privacy policy,Not available,5,S,Needed for Chrome Web Store listing
+13. Privacy And Security,User-controlled data retention,Partial,4,S,Clear history/list/saved links + history days; no single ‘erase everything’
+13. Privacy And Security,Secure error logging,Partial,3,S,Console warnings only; no log export
+13. Privacy And Security,Permission audit,Partial,3,M,Needs broad host access to detect video; userScripts optional
+13. Privacy And Security,Website access controls,Partial,5,M,"Uses all-sites access; per-site rules, no per-site on/off"
+14. Website Compatibility,HTML5 video player compatibility,Available,,,
+14. Website Compatibility,Supported embedded video compatibility,Available,,,
+14. Website Compatibility,Supported iframe player compatibility,Available,,,
+14. Website Compatibility,Authorized video hosting compatibility,Partial,8,L,"Generic detection; no site-specific extractors (Vimeo, Reddit, X…)"
+14. Website Compatibility,Self-hosted video compatibility,Available,,,
+14. Website Compatibility,HLS compatibility,Available,,,
+14. Website Compatibility,DASH compatibility,Available,,,
+14. Website Compatibility,Dynamic website compatibility,Available,,,"MutationObserver, SPA navigation, Refresh list"
+14. Website Compatibility,Single-page application compatibility,Available,,,"MutationObserver, SPA navigation, Refresh list"
+14. Website Compatibility,Website-specific detection rules,Partial,7,L,Rule/script addons let you add them; none built in
+14. Website Compatibility,Custom website compatibility settings,Partial,7,L,Rule/script addons let you add them; none built in
+14. Website Compatibility,Website-specific download preferences,Available,,,"Per-site rules: default action, naming"
+14. Website Compatibility,Compatibility diagnostics,Partial,6,M,DRM/MSE notices + provider notice; no full diagnostic report
+14. Website Compatibility,Website permission indicators,Partial,5,M,"Uses all-sites access; per-site rules, no per-site on/off"
+14. Website Compatibility,Unsupported website notifications,Partial,6,M,DRM/MSE notices + provider notice; no full diagnostic report
+15. Notifications And Automation,Download started notification,Not available,2,S,Not built
+15. Notifications And Automation,Download completed notification,Available,,,Chrome notifications (toggle in Settings)
+15. Notifications And Automation,Download failed notification,Available,,,Chrome notifications (toggle in Settings)
+15. Notifications And Automation,Download paused notification,Not available,2,S,Not built
+15. Notifications And Automation,Download resumed notification,Not available,2,S,Not built
+15. Notifications And Automation,Low disk space warning,Not available,2,M,Chrome doesn't expose free disk space to extensions
+15. Notifications And Automation,Duplicate video warning,Not available,7,S,Not built
+15. Notifications And Automation,Download queue completed notification,Not available,3,S,Not built
+15. Notifications And Automation,Automatic retry notification,Not available,2,S,Not built
+15. Notifications And Automation,Scheduled download reminders,Not available,3,M,Not built
+15. Notifications And Automation,Desktop notifications,Available,,,Chrome notifications (toggle in Settings)
+15. Notifications And Automation,Optional notification sounds,Not available,2,S,Not built
+15. Notifications And Automation,Notification history,Not available,1,S,Not built
+15. Notifications And Automation,Custom notification preferences,Partial,3,S,On/off only
+15. Notifications And Automation,Automatic queue processing,Available,,,Jobs queued and started automatically
+15. Notifications And Automation,Download completion actions,Not available,3,S,e.g. open file / show folder automatically
+16. Statistics And Analytics,Total downloads,Not available,4,S,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Successful downloads,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Failed downloads,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Total downloaded size,Not available,4,S,No statistics screen
+16. Statistics And Analytics,Average download speed,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Fastest download speed,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Daily download statistics,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Weekly download statistics,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Monthly download statistics,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Yearly download statistics,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Most frequently used websites,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Most downloaded resolutions,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Download format distribution,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Download history timeline,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Storage usage chart,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Download success rate,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Download failure rate,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Average download duration,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Bandwidth usage chart,Not available,3,M,No statistics screen (History has the raw data)
+16. Statistics And Analytics,Download activity chart,Not available,3,M,No statistics screen (History has the raw data)
+17. Premium / Pro Features,Advanced video detection,Available,,,Addons (rule + script) for custom detection
+17. Premium / Pro Features,Advanced download automation,Partial,5,M,Global + per-site ‘Always’ actions; no rule builder/presets
+17. Premium / Pro Features,Advanced download queue management,Available,,,Addons (rule + script) for custom detection
+17. Premium / Pro Features,Extended download history,Available,,,History days configurable
+17. Premium / Pro Features,Advanced batch management,Partial,5,M,Not built
+17. Premium / Pro Features,Additional format and conversion options,Not available,4,L,Needs ffmpeg.wasm (~30 MB) or the helper app
+17. Premium / Pro Features,Custom themes,Partial,2,M,Light/dark + 7 accent colours + custom colour; no full theme editor
+17. Premium / Pro Features,Advanced notifications,Available,,,
+17. Premium / Pro Features,Advanced download rules,Partial,5,M,Global + per-site ‘Always’ actions; no rule builder/presets
+17. Premium / Pro Features,AI video summaries,Not available,4,L,Needs an AI service (API key/cost) or a large local model
+17. Premium / Pro Features,AI subtitles,Not available,6,L,Needs an AI service (API key/cost) or a large local model
+17. Premium / Pro Features,AI-powered video search,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+17. Premium / Pro Features,Advanced media library,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+17. Premium / Pro Features,Custom automation,Available,,,Addons (rule + script) for custom detection
+17. Premium / Pro Features,Advanced analytics,Not available,3,M,No statistics screen (History has the raw data)
+17. Premium / Pro Features,Priority customer support,Not available,1,,"Business service, not a feature"
+17. Premium / Pro Features,Custom filename templates,Available,,,"Rename, template tokens {title} {res} {host} {date} {time} {selector}, Smart naming"
+17. Premium / Pro Features,Advanced organization tools,Partial,5,M,Not built
+18. Unique Differentiating Features,Smart floating download button,Partial,7,M,Page sidebar + edge handle; no button on top of each video
+18. Unique Differentiating Features,Multi-video page scanner,Available,,,"Network + DOM + player probes + AJAX/JSON, all frames"
+18. Unique Differentiating Features,Smart quality recommendation,Partial,3,M,Picks your default quality; no recommendation logic
+18. Unique Differentiating Features,Personal video library,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+18. Unique Differentiating Features,Download intelligence dashboard,Not available,3,M,No statistics screen (History has the raw data)
+18. Unique Differentiating Features,Mini download center,Available,,,
+18. Unique Differentiating Features,Video collection management,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+18. Unique Differentiating Features,Favorite video collections,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+18. Unique Differentiating Features,Smart duplicate finder,Not available,4,M,Not built
+18. Unique Differentiating Features,Download presets,Partial,5,M,Global + per-site ‘Always’ actions; no rule builder/presets
+18. Unique Differentiating Features,One-click preferred-quality download,Available,,,Download button uses your default quality/format
+18. Unique Differentiating Features,Website-specific download profiles,Available,,,"Per-site rules: default action, naming"
+18. Unique Differentiating Features,Custom download profiles,Partial,5,M,Global + per-site ‘Always’ actions; no rule builder/presets
+18. Unique Differentiating Features,Video metadata inspector,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+18. Unique Differentiating Features,Media source inspector,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+18. Unique Differentiating Features,Video comparison tool,Not available,1,M,Not built
+18. Unique Differentiating Features,Smart storage manager,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+18. Unique Differentiating Features,Download folder templates,Partial,7,S,One fixed subfolder; no {host}/{date} folders
+18. Unique Differentiating Features,Recent webpage video scanner,Not available,3,M,Detected lists are per open tab only
+18. Unique Differentiating Features,Quick access download history,Available,,,"History tab, 30 days by default"
+18. Unique Differentiating Features,Download error diagnostics,Available,,,Clear error text on failed jobs
+18. Unique Differentiating Features,Video compatibility checker,Partial,4,M,Shows DRM/live/separate-audio limits; no ‘will it play on my device’ check
+18. Unique Differentiating Features,Customizable extension interface,Available,,,"Theme, colour, size, panel type, sidebar modes"
+19. Additional Professional Features,Multi-language UI,Not available,5,L,English only
+19. Additional Professional Features,Localization support,Not available,5,L,English only
+19. Additional Professional Features,Onboarding experience,Not available,5,M,Not built
+19. Additional Professional Features,Interactive product tutorial,Not available,5,M,Not built
+19. Additional Professional Features,Extension update notifications,Not available,3,S,Not built
+19. Additional Professional Features,Changelog viewer,Not available,3,S,Not built
+19. Additional Professional Features,Feedback submission,Not available,3,S,Not built
+19. Additional Professional Features,Bug reporting,Not available,3,S,Not built
+19. Additional Professional Features,Support center,Available,,,Tooltips + Help screen
+19. Additional Professional Features,FAQ section,Available,,,Tooltips + Help screen
+19. Additional Professional Features,Keyboard accessibility,Available,,,"Arrow keys, focus states, ARIA; S/M/L sizes"
+19. Additional Professional Features,Screen reader accessibility,Partial,4,M,ARIA labels on controls; not tested with a screen reader
+19. Additional Professional Features,Responsive popup layout,Available,,,"Arrow keys, focus states, ARIA; S/M/L sizes"
+19. Additional Professional Features,Performance optimization,Available,,,"Arrow keys, focus states, ARIA; S/M/L sizes"
+19. Additional Professional Features,Memory usage optimization,Partial,5,M,Streams to disk in chunks; large HLS still buffered in memory before saving
+19. Additional Professional Features,Background task optimization,Available,,,"Arrow keys, focus states, ARIA; S/M/L sizes"
+19. Additional Professional Features,Browser compatibility checks,Not available,3,L,Chrome/Edge only; no Firefox build
+19. Additional Professional Features,Crash recovery,Available,,,Jobs resume after worker/browser restart
+19. Additional Professional Features,Extension health monitoring,Not available,2,M,Not built
+19. Additional Professional Features,User preference synchronization where supported,Partial,3,M,Settings sync via Chrome sync; history/saved links stay local
+20. Technical Architecture,Chrome Manifest V3,Available,,,
+20. Technical Architecture,React frontend,Not available,1,L,"Plain JavaScript modules, no build step (by design)"
+20. Technical Architecture,TypeScript,Not available,1,L,"Plain JavaScript modules, no build step (by design)"
+20. Technical Architecture,Tailwind CSS,Not available,1,L,"Plain JavaScript modules, no build step (by design)"
+20. Technical Architecture,shadcn/ui components,Not available,1,L,"Plain JavaScript modules, no build step (by design)"
+20. Technical Architecture,Zustand state management,Not available,1,L,"Plain JavaScript modules, no build step (by design)"
+20. Technical Architecture,chrome.storage.local,Available,,,
+20. Technical Architecture,chrome.downloads API,Available,,,
+20. Technical Architecture,Content scripts,Available,,,
+20. Technical Architecture,Background service worker,Available,,,
+20. Technical Architecture,IndexedDB,Not available,1,M,chrome.storage + OPFS used instead
+20. Technical Architecture,Video detection engine,Available,,,
+20. Technical Architecture,Media metadata parser,Available,,,
+20. Technical Architecture,Download manager engine,Available,,,
+20. Technical Architecture,HLS parser for permitted media,Available,,,
+20. Technical Architecture,DASH parser for permitted media,Available,,,
+20. Technical Architecture,Download queue engine,Available,,,
+20. Technical Architecture,Notification manager,Available,,,
+20. Technical Architecture,Settings manager,Available,,,
+20. Technical Architecture,Error handling system,Available,,,
+20. Technical Architecture,Logging system,Partial,3,S,Not built
+20. Technical Architecture,Unit testing,Not available,3,M,Browser-level tests only
+20. Technical Architecture,Integration testing,Available,,,"6 Playwright suites, 258 checks"
+20. Technical Architecture,End-to-end testing,Available,,,"6 Playwright suites, 258 checks"
+20. Technical Architecture,Browser compatibility testing,Not available,3,L,Chrome/Edge only; no Firefox build
+20. Technical Architecture,Secure permission management,Available,,,
+21. Development Roadmap · Phase 1 – Mvp,Video detection,Available,,,
+21. Development Roadmap · Phase 1 – Mvp,Video information,Available,,,"Details dialog: URL, page, MIME, size, resolution, duration, sources, qualities, DRM"
+21. Development Roadmap · Phase 1 – Mvp,Resolution selection,Available,,,Quality dropdown per card; preferred format in Settings
+21. Development Roadmap · Phase 1 – Mvp,Format selection,Available,,,Quality dropdown per card; preferred format in Settings
+21. Development Roadmap · Phase 1 – Mvp,One-click download,Available,,,
+21. Development Roadmap · Phase 1 – Mvp,Download progress,Available,,,"Progress bar, %, segments, bytes"
+21. Development Roadmap · Phase 1 – Mvp,Basic download history,Available,,,"History tab, 30 days by default"
+21. Development Roadmap · Phase 1 – Mvp,Popup interface,Available,,,
+21. Development Roadmap · Phase 2 – Advanced,Batch downloads,Partial,9,M,Download from Saved links list; no ‘Download all’ / multi-select on the media list
+21. Development Roadmap · Phase 2 – Advanced,Download queue,Available,,,Jobs queued and started automatically
+21. Development Roadmap · Phase 2 – Advanced,Pause/resume where supported,Available,,,Pause/Resume on segment and file downloads (not live)
+21. Development Roadmap · Phase 2 – Advanced,Authorized HLS/DASH support,Available,,,"HLS (incl. AES-128) + DASH, segment by segment"
+21. Development Roadmap · Phase 2 – Advanced,Automatic retries,Available,,,
+21. Development Roadmap · Phase 2 – Advanced,Duplicate detection,Available,,,
+21. Development Roadmap · Phase 2 – Advanced,Full dashboard,Available,,,"Max sidebar, tab view"
+21. Development Roadmap · Phase 3 – Smart,Smart quality selection,Available,,,Default resolution ‘Highest’ / up to N
+21. Development Roadmap · Phase 3 – Smart,Automatic filename generation,Available,,,"Rename, template tokens {title} {res} {host} {date} {time} {selector}, Smart naming"
+21. Development Roadmap · Phase 3 – Smart,Download automation rules,Partial,5,M,Global + per-site ‘Always’ actions; no rule builder/presets
+21. Development Roadmap · Phase 3 – Smart,Video categorization,Partial,3,M,Saved-link categories only
+21. Development Roadmap · Phase 3 – Smart,Advanced statistics,Not available,3,M,No statistics screen (History has the raw data)
+21. Development Roadmap · Phase 3 – Smart,Subtitle management,Not available,7,M,Not built
+21. Development Roadmap · Phase 4 – Premium,AI video summaries,Not available,4,L,Needs an AI service (API key/cost) or a large local model
+21. Development Roadmap · Phase 4 – Premium,AI subtitles,Not available,6,L,Needs an AI service (API key/cost) or a large local model
+21. Development Roadmap · Phase 4 – Premium,AI video search,Not available,2,L,Needs an AI service (API key/cost) or a large local model
+21. Development Roadmap · Phase 4 – Premium,Advanced media library,Partial,5,L,"Saved links (videos/pages, categories, notes, link check); no full library"
+21. Development Roadmap · Phase 4 – Premium,Custom automation,Available,,,Addons (rule + script) for custom detection
+21. Development Roadmap · Phase 4 – Premium,Premium themes,Partial,2,M,Light/dark + 7 accent colours + custom colour; no full theme editor
+21. Development Roadmap · Phase 4 – Premium,Advanced analytics,Not available,3,M,No statistics screen (History has the raw data)
+22. Torrent Download Features,Torrent file download support,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Magnet link recognition,Not available,3,S,Could be detected on pages and handed to your torrent app
+22. Torrent Download Features,Magnet link copy,Not available,3,S,Could be detected on pages and handed to your torrent app
+22. Torrent Download Features,.torrent file recognition,Not available,3,S,Could be detected on pages and handed to your torrent app
+22. Torrent Download Features,Torrent metadata detection,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent name detection,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent file size display,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent file information,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent download status,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent download progress,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Download speed display,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Upload speed display,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Download pause and resume,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent download queue,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Multiple torrent management,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent download history,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent file organization,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent category management,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent completion notifications,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent download statistics,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+22. Torrent Download Features,Torrent client integration,Not available,2,S,Hand magnet links to qBittorrent etc. (the browser already does this)
+22. Torrent Download Features,External torrent client support,Not available,2,S,Hand magnet links to qBittorrent etc. (the browser already does this)
+22. Torrent Download Features,Default torrent application selection,Not available,2,S,Hand magnet links to qBittorrent etc. (the browser already does this)
+22. Torrent Download Features,Magnet link opening preferences,Not available,2,S,Hand magnet links to qBittorrent etc. (the browser already does this)
+22. Torrent Download Features,Torrent privacy settings,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+23. Picture-In-Picture (Pip) View,Picture-in-Picture mode,Not available,7,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Floating video player,Not available,6,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Always-on-top video window,Not available,6,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Mini video player,Not available,5,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Resizable floating player,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Draggable floating player,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Play and pause controls,Not available,4,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Previous and next controls where supported,Not available,2,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Volume control,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Mute and unmute,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Playback speed control,Not available,5,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Seek forward and backward,Not available,4,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Full-screen mode,Not available,2,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Video progress bar,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Keyboard shortcuts,Not available,4,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Remember last playback position,Not available,3,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Auto PIP mode,Not available,5,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Auto PIP when switching tabs,Not available,6,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Auto PIP when minimizing browser,Not available,3,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,PIP window positioning,Not available,2,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,PIP window size preferences,Not available,2,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,PIP background controls,Not available,3,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Multiple PIP compatibility checks,Not available,2,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Return to original tab,Not available,4,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,Close floating player,Not available,3,S,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+23. Picture-In-Picture (Pip) View,PIP support for compatible video websites,Not available,6,M,"VidPull's own panel can float (Keep on top), but there's no video Picture-in-Picture"
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent links,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save magnet links,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent files,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Bookmark torrent websites,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Bookmark torrent pages,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent metadata,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent titles,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent descriptions,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent thumbnails,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent file sizes,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save torrent category,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save source website,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save original page URL,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Save date added,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Add personal notes,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Add custom tags,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Add favorites,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Search saved torrents,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Filter saved torrents,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Sort saved torrents,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Edit saved torrent information,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Delete saved torrents,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Bulk delete,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Bulk organize,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Export torrent bookmarks,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Import torrent bookmarks,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Copy saved magnet links,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Open original torrent page,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Check saved link availability where permitted,Not available,1,M,Torrent bookmarking: out of scope
+24. Torrent Saver / Torrent Bookmark Manager,Duplicate bookmark detection,Not available,1,M,Torrent bookmarking: out of scope
+25. Bookmark Folder Management,Create bookmark folders,Partial,4,S,"Saved links has flat categories (create, rename, colour, delete)"
+25. Bookmark Folder Management,Create unlimited folders where storage permits,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Rename folders,Partial,4,S,"Saved links has flat categories (create, rename, colour, delete)"
+25. Bookmark Folder Management,Delete folders,Partial,4,S,"Saved links has flat categories (create, rename, colour, delete)"
+25. Bookmark Folder Management,Move folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Copy folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Duplicate folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Nest folders inside folders,Not available,3,M,Categories are one level
+25. Bookmark Folder Management,Create subfolders,Not available,3,M,Categories are one level
+25. Bookmark Folder Management,Unlimited folder nesting where practical,Not available,3,M,Categories are one level
+25. Bookmark Folder Management,Drag-and-drop folder organization,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Drag-and-drop bookmark organization,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Move bookmarks between folders,Available,,,Move to category
+25. Bookmark Folder Management,Copy bookmarks between folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Multi-select bookmarks,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Multi-select folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Bulk move bookmarks,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Bulk delete bookmarks,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Bulk rename bookmarks,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Folder descriptions,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Folder icons,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Custom folder colors,Available,,,Category colours
+25. Bookmark Folder Management,Folder cover images,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Folder favorites,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Pin important folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Sort folders alphabetically,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Sort folders by date,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Custom folder ordering,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Expand and collapse folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Expand all folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Collapse all folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Folder search,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Search inside folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Search across all folders,Available,,,Saved links search + category filter + counts
+25. Bookmark Folder Management,Folder-specific filters,Available,,,Saved links search + category filter + counts
+25. Bookmark Folder Management,Folder item count,Available,,,Saved links search + category filter + counts
+25. Bookmark Folder Management,Folder storage information,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Recently opened folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Recently added bookmarks,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Recently modified folders,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Empty folder detection,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Duplicate folder detection,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Empty folder cleanup,Not available,2,M,Saved links has flat categories only
+25. Bookmark Folder Management,Folder import and export,Available,,,Included in Settings › Backup
+25. Bookmark Folder Management,Backup and restore folders,Available,,,Included in Settings › Backup
+26. Advanced Bookmark Features,Save current webpage,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save webpage title,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save webpage URL,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save webpage favicon,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Save webpage thumbnail,Partial,2,S,Video thumbnails kept; page description no
+26. Advanced Bookmark Features,Save page description,Partial,2,S,Video thumbnails kept; page description no
+26. Advanced Bookmark Features,Save selected text,Not available,2,S,Not built
+26. Advanced Bookmark Features,Save custom notes,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save video page bookmarks,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save media source information,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Save multiple links at once,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Bookmark with keyboard shortcut,Not available,3,S,Not built
+26. Advanced Bookmark Features,Bookmark with right-click menu,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Quick bookmark popup,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Automatic bookmark naming,Available,,,Uses page/video title
+26. Advanced Bookmark Features,Automatic bookmark categorization,Not available,2,M,Not built
+26. Advanced Bookmark Features,Custom bookmark tags,Partial,2,S,Coloured categories work like one tag per item
+26. Advanced Bookmark Features,Bookmark color labels,Partial,2,S,Coloured categories work like one tag per item
+26. Advanced Bookmark Features,Favorite bookmarks,Not available,3,S,Not built
+26. Advanced Bookmark Features,Pinned bookmarks,Not available,3,S,Not built
+26. Advanced Bookmark Features,Recently visited bookmarks,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Recently added bookmarks,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Recently updated bookmarks,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Bookmark search,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Advanced bookmark filters,Partial,3,S,Category filter + search; no sort options
+26. Advanced Bookmark Features,Bookmark sorting,Partial,3,S,Category filter + search; no sort options
+26. Advanced Bookmark Features,Duplicate URL detection,Available,,,Re-saving the same URL updates the entry (‘Already saved’)
+26. Advanced Bookmark Features,Broken link identification,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Open all bookmarks in folder,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Open selected bookmarks,Not available,2,S,Not in Saved links
+26. Advanced Bookmark Features,Copy multiple URLs,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Export bookmarks as HTML,Not available,2,S,Browser-bookmark format
+26. Advanced Bookmark Features,Export bookmarks as JSON,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+26. Advanced Bookmark Features,Import bookmarks from HTML,Not available,2,S,Browser-bookmark format
+26. Advanced Bookmark Features,Import bookmarks from JSON,Available,,,"Saved links (Pages / Videos), notes, link check, backup JSON"
+27. Advanced Folder Experience,Sidebar folder navigation,Partial,2,M,Category chips; no tree
+27. Advanced Folder Experience,Tree-style folder view,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Grid folder view,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,List folder view,Available,,,"Saved links list, search, category filter"
+27. Advanced Folder Experience,Folder breadcrumb navigation,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder context menu,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Right-click folder actions,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder preview,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder quick access,Partial,2,M,Category chips; no tree
+27. Advanced Folder Experience,Favorite folder shortcuts,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Recent folders section,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Smart folders,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Automatic folders,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Custom folder rules,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Dynamic folders based on tags,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Dynamic folders based on website,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Dynamic folders based on date,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Dynamic folders based on content type,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder-level search,Available,,,"Saved links list, search, category filter"
+27. Advanced Folder Experience,Folder-level sorting,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder-level filtering,Available,,,"Saved links list, search, category filter"
+27. Advanced Folder Experience,Folder-level bulk actions,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder-level notes,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder-level metadata,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder-level backup,Not available,2,M,Saved links has flat categories only
+27. Advanced Folder Experience,Folder synchronization where supported,Partial,3,M,Settings sync via Chrome sync; history/saved links stay local
+28. Media Library Organization,Video folders,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Audio folders,Partial,2,M,Audio downloads in History; no audio library
+28. Media Library Organization,Torrent folders,Not available,1,M,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+28. Media Library Organization,Website bookmarks,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Educational content folders,Not available,2,M,Not in Saved links
+28. Media Library Organization,Entertainment folders,Not available,2,M,Not in Saved links
+28. Media Library Organization,Personal collections,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Favorite media,Not available,4,S,Saved links has categories but no ★ favourites
+28. Media Library Organization,Recently downloaded media,Available,,,History
+28. Media Library Organization,Recently watched videos,Not available,1,M,Would need watch tracking (privacy)
+28. Media Library Organization,Saved videos,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Saved playlists,Not available,3,M,Not built
+28. Media Library Organization,Custom collections,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Custom media tags,Not available,2,M,Not in Saved links
+28. Media Library Organization,Media search,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Media filtering,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Media sorting,Partial,2,S,Media list sortable; saved links not
+28. Media Library Organization,Media preview,Available,,,"Poster/thumbnail, optional hover video preview"
+28. Media Library Organization,Media metadata viewer,Partial,4,M,"Saved links: video & page lists with categories, search, details"
+28. Media Library Organization,Duplicate media detection,Not available,4,M,Not built
+28. Media Library Organization,Smart media organization,Not available,2,M,Not in Saved links
+28. Media Library Organization,Custom collection covers,Not available,2,M,Not in Saved links
+29. Extra Productivity Features,Global search,Partial,4,M,"Search per screen (media, downloads, history, saved)"
+29. Extra Productivity Features,Quick search shortcut,Not available,2,M,Not built
+29. Extra Productivity Features,Command palette,Not available,2,M,Not built
+29. Extra Productivity Features,Keyboard navigation,Available,,,
+29. Extra Productivity Features,Drag-and-drop organization,Not available,2,M,Not built
+29. Extra Productivity Features,Multi-tab support,Available,,,
+29. Extra Productivity Features,Split-view dashboard,Not available,2,M,Not built
+29. Extra Productivity Features,Quick access sidebar,Available,,,Page sidebar + Chrome side panel
+29. Extra Productivity Features,Recently used items,Available,,,
+29. Extra Productivity Features,Favorites dashboard,Not available,2,M,Not built
+29. Extra Productivity Features,Customizable home screen,Not available,2,M,Not built
+29. Extra Productivity Features,Custom dashboard widgets,Not available,2,M,Not built
+29. Extra Productivity Features,Activity history,Partial,2,S,Download history only
+29. Extra Productivity Features,Undo delete,Not available,4,S,Deletes ask for confirmation; no undo
+29. Extra Productivity Features,Recently deleted items,Not available,4,S,Deletes ask for confirmation; no undo
+29. Extra Productivity Features,Trash folder,Not available,4,S,Deletes ask for confirmation; no undo
+29. Extra Productivity Features,Restore deleted bookmarks,Not available,4,S,Deletes ask for confirmation; no undo
+29. Extra Productivity Features,Automatic backup,Not available,3,S,Not built
+29. Extra Productivity Features,Manual backup,Available,,,
+29. Extra Productivity Features,Data import/export,Available,,,
+29. Extra Productivity Features,Local data storage,Available,,,
+29. Extra Productivity Features,Optional encrypted backup,Not available,2,M,Not built
+29. Extra Productivity Features,Cross-device synchronization where supported,Partial,3,M,Settings sync via Chrome sync; history/saved links stay local
+29. Extra Productivity Features,Customizable shortcuts,Partial,2,S,Changed at chrome://extensions/shortcuts (Chrome); not inside VidPull
+30. Recommended Main Navigation,Home,Partial,1,S,Media tab is the start screen
+30. Recommended Main Navigation,Video Detector,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Video Downloads,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Torrent Manager,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+30. Recommended Main Navigation,Picture-in-Picture,Partial,6,M,Panel can float; no video PiP
+30. Recommended Main Navigation,Media Library,Partial,4,M,Saved links
+30. Recommended Main Navigation,Bookmarks,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,All Bookmarks,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Video Bookmarks,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Website Bookmarks,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Torrent Bookmarks,Not available,1,L,Out of VidPull's scope (needs a BitTorrent engine or an external client)
+30. Recommended Main Navigation,Favorite Bookmarks,Not available,3,S,Not built
+30. Recommended Main Navigation,Recently Added,Partial,2,S,Saved links sorted newest first; no ‘visited’
+30. Recommended Main Navigation,Recently Visited,Partial,2,S,Saved links sorted newest first; no ‘visited’
+30. Recommended Main Navigation,Custom Folders,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Folder 1,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Subfolder 1,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Subfolder 2,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Folder 2,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Subfolder 1,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Folder 3,Partial,2,M,"Example entries — categories exist, no subfolders"
+30. Recommended Main Navigation,Download History,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
+30. Recommended Main Navigation,Favorites,Not available,3,S,Not built
+30. Recommended Main Navigation,Analytics,Not available,3,M,Not built
+30. Recommended Main Navigation,Settings,Available,,,"Media / Downloads / History / Saved (Videos, Pages, categories) / Settings"
